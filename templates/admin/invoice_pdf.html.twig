@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color:#111; }
+    h1 { font-size: 18px; margin: 0 0 8px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #999; padding: 6px; text-align: left; }
+    .meta { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Facture #{{ invoice.invoiceCode }}</h1>
+  <div class="meta">
+    <div><strong>Date:</strong> {{ invoice.createdAt|date('Y-m-d H:i') }}</div>
+    <div><strong>Client:</strong> {{ invoice.firstName }} {{ invoice.lastName }}</div>
+    <div><strong>Naissance:</strong> {{ invoice.dateOfBirth|date('Y-m-d') }}</div>
+    <div><strong>Adresse:</strong> {{ invoice.address }}</div>
+    <div><strong>Paiement:</strong> {{ invoice.paymentMethod|capitalize }}</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Devise</th>
+        <th>Montant EUR</th>
+        <th>Montant Devise</th>
+        <th>Tx EUR→Dev</th>
+        <th>Tx Dev→EUR</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in invoice.items %}
+        <tr>
+          <td>{{ it.currency }}</td>
+          <td>{{ it.amountEuro ?? '-' }}</td>
+          <td>{{ it.amountLocal ?? '-' }}</td>
+          <td>{{ it.rateEurToLocal is not null ? it.rateEurToLocal|number_format(4,'.',' ') : '-' }}</td>
+          <td>{{ it.rateLocalToEur is not null ? it.rateLocalToEur|number_format(6,'.',' ') : '-' }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
+

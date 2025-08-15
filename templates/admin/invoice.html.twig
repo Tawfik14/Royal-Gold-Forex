@@ -1,0 +1,139 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin - Facture{% endblock %}
+
+{% block body %}
+<div style="max-width: 1000px; margin: 2rem auto; display:grid; gap:16px;">
+  <h1>Créer une facture</h1>
+
+  {% for m in app.flashes('error') %}
+    <div style="background:#8b1d1d;color:#fff;padding:.6rem 1rem;border-radius:10px;">{{ m }}</div>
+  {% endfor %}
+
+  <form method="post" action="{{ path('admin_invoice', {mode: 'admin'}) }}" style="display:grid; gap:14px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div>
+        <label>Prénom</label>
+        <input name="first_name" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+      <div>
+        <label>Nom</label>
+        <input name="last_name" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:12px;">
+      <div>
+        <label>Date de naissance</label>
+        <input type="date" name="dob" required max="{{ 'now'|date('Y-m-d') }}" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+      <div>
+        <label>Adresse</label>
+        <input name="address" required placeholder="Rue, CP, Ville, Pays" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+    </div>
+    <div>
+      <label>Moyen de paiement</label>
+      <select name="payment" style="padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);">
+        <option value="cash">Espèces</option>
+        <option value="card">Carte de crédit</option>
+        <option value="transfer">Virement</option>
+      </select>
+    </div>
+
+    <h3>Lignes devises</h3>
+    <div id="items" style="display:grid; gap:10px;">
+      <div class="row" style="display:grid; grid-template-columns: 1.2fr .9fr .9fr .9fr .9fr; gap:10px;">
+        <div>
+          <label>Devise</label>
+          <select name="item_currency[]" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);">
+            <option value="">Choisir…</option>
+            {% for c in currencies %}
+              <option value="{{ c.code }}">{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Montant EUR</label>
+          <input name="item_eur[]" type="number" step="0.01" min="0" placeholder="EUR" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+        </div>
+        <div>
+          <label>Montant Devise</label>
+          <input name="item_local[]" type="number" step="0.01" min="0" placeholder="Devise" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+        </div>
+        <div>
+          <label>Tx EUR→Dev</label>
+          <input name="item_rate_el[]" type="number" step="0.0001" min="0" placeholder="ex: 1.10" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+        </div>
+        <div>
+          <label>Tx Dev→EUR</label>
+          <input name="item_rate_le[]" type="number" step="0.000001" min="0" placeholder="ex: 0.909091" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+        </div>
+      </div>
+    </div>
+    <div>
+      <button type="button" id="add-row" class="btn" style="margin-right:8px;">Ajouter une devise</button>
+      <button class="btn btn-primary" type="submit">Générer la facture (PDF)</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const items = document.getElementById('items');
+  const addRow = document.getElementById('add-row');
+  if (addRow && items) {
+    addRow.addEventListener('click', () => {
+      const row = items.querySelector('.row');
+      const clone = row.cloneNode(true);
+      clone.querySelectorAll('input').forEach(i => i.value = '');
+      clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+      items.appendChild(clone);
+      wire(clone);
+    });
+    // wire initial row
+    items.querySelectorAll('.row').forEach(wire);
+  }
+
+  function wire(row){
+    const eur = row.querySelector('input[name="item_eur[]"]');
+    const loc = row.querySelector('input[name="item_local[]"]');
+    const el  = row.querySelector('input[name="item_rate_el[]"]');
+    const le  = row.querySelector('input[name="item_rate_le[]"]');
+
+    const sync = (src, dst, fn) => {
+      if (!src || !dst) return;
+      src.addEventListener('input', () => {
+        const v = parseFloat(src.value);
+        if (!isNaN(v) && v > 0) {
+          dst.value = fn(v);
+        } else if (src.value === '') {
+          // do not overwrite if manually cleared other
+        }
+      });
+    };
+
+    // Reciprocals for rates
+    sync(el, le, v => (1 / v).toFixed(6));
+    sync(le, el, v => (1 / v).toFixed(6));
+
+    // Amounts link to rates if one side empty
+    eur.addEventListener('input', () => {
+      const ev = parseFloat(eur.value);
+      const elv = parseFloat(el.value);
+      if (!isNaN(ev) && ev > 0 && !isNaN(elv) && elv > 0 && (loc.value === '' || parseFloat(loc.value) === 0)) {
+        loc.value = (ev * elv).toFixed(2);
+      }
+    });
+    loc.addEventListener('input', () => {
+      const lv = parseFloat(loc.value);
+      const lev = parseFloat(le.value);
+      if (!isNaN(lv) && lv > 0 && !isNaN(lev) && lev > 0 && (eur.value === '' || parseFloat(eur.value) === 0)) {
+        eur.value = (lv * lev).toFixed(2);
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

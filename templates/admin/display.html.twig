@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin - Affichage{% endblock %}
+
+{% block body %}
+<div style="max-width: 900px; margin: 2rem auto;">
+  <h1>Configurer l’affichage</h1>
+  {% for m in app.flashes('success') %}<div style="background:#093;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>{% endfor %}
+
+  <form method="post" action="{{ path('admin_display', {mode: 'admin'}) }}" style="display:grid; gap: 14px;">
+    <fieldset style="border:1px solid var(--border); border-radius:12px; padding:12px;">
+      <legend style="padding:0 8px; color:#93a1c6;">Direction d’affichage</legend>
+      <label style="display:inline-flex; gap:8px; align-items:center; margin-right:16px;">
+        <input type="radio" name="direction" value="eur_to_local" {% if direction == 'eur_to_local' %}checked{% endif %} />
+        EUR → Devise
+      </label>
+      <label style="display:inline-flex; gap:8px; align-items:center;">
+        <input type="radio" name="direction" value="local_to_eur" {% if direction == 'local_to_eur' %}checked{% endif %} />
+        Devise → EUR
+      </label>
+    </fieldset>
+
+    <fieldset style="border:1px solid var(--border); border-radius:12px; padding:12px;">
+      <legend style="padding:0 8px; color:#93a1c6;">Devises à afficher</legend>
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+        {% for c in currencies %}
+          <label style="display:flex; gap:8px; align-items:center; border:1px solid var(--border); border-radius:10px; padding:8px; background:rgba(255,255,255,0.04);">
+            <input type="checkbox" name="codes[]" value="{{ c.code }}" {% if c.code in selected %}checked{% endif %} />
+            <span>{{ c.flag }} {{ c.country }} ({{ c.code }})</span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div>
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn" href="{{ path('admin_screen', {mode: 'admin'}) }}" target="_blank">Ouvrir l’écran</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

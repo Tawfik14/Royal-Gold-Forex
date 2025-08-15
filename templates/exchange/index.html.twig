@@ -1,0 +1,208 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exchange Rates & Converter{% endblock %}
+
+{% block body %}
+<div id="reservation" class="container" style="max-width: 1100px; margin: 2rem auto; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;">
+  <h1 style="margin: 0 0 1.25rem 0;">Exchange Rates</h1>
+  <p style="color:#93a1c6; margin-bottom: 1.25rem;">Les cours Buy/Sell incluent une marge. Choisissez une devise pour chaque calculatrice, puis renseignez EUR ou la devise.</p>
+
+  {% for message in app.flashes('error') %}
+    <div style="background:rgba(255,0,0,0.08);color:#ffb4b4;padding:0.9rem 1.1rem;border:1px solid rgba(255,0,0,0.25);border-radius:12px;margin-bottom:1.25rem;">{{ message }}</div>
+  {% endfor %}
+
+  <div style="display:grid; grid-template-columns: 1fr; gap: 32px;">
+    <section>
+      <div style="background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius: 16px; overflow: hidden;">
+        <table style="width:100%; border-collapse: collapse; table-layout: fixed;">
+          <colgroup>
+            <col style="width:22%;">  {# Pays #}
+            <col style="width:20%;">  {# Devise #}
+            <col style="width:8%;">   {# Code #}
+            <col style="width:13%;">  {# EUR→Local Buy #}
+            <col style="width:13%;">  {# EUR→Local Sell #}
+            <col style="width:12%;">  {# Local→EUR Buy #}
+            <col style="width:12%;">  {# Local→EUR Sell #}
+          </colgroup>
+          <thead>
+            <tr style="text-align:left; border-bottom:1px solid var(--border);">
+              <th style="padding:20px;">Pays</th>
+              <th style="padding:20px;">Devise</th>
+              <th style="padding:20px;">Code</th>
+              <th style="padding:20px;">EUR→Local Buy</th>
+              <th style="padding:20px;">EUR→Local Sell</th>
+              <th style="padding:20px;">Local→EUR Buy</th>
+              <th style="padding:20px;">Local→EUR Sell</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in currencies %}
+              {% set code = c.code %}
+              {% set r = rates[code] ?? null %}
+              <tr style="border-top:1px solid var(--border);">
+                <td style="padding:20px;">{{ c.flag }} {{ c.country }}</td>
+                <td style="padding:20px;">{{ c.currency }}</td>
+                <td style="padding:20px; font-weight:600;">{{ code }}</td>
+
+                {# EUR -> Local (affiché tel quel) #}
+                <td style="padding:20px;">{% if r and r.buy  %}{{ r.buy|number_format(4, '.', ' ')  }}{% else %}-{% endif %}</td>
+                <td style="padding:20px;">{% if r and r.sell %}{{ r.sell|number_format(4, '.', ' ') }}{% else %}-{% endif %}</td>
+
+                {# Local -> EUR (réciproques) #}
+                <td style="padding:20px;">
+                  {% if r and r.buy and r.buy > 0 %}
+                    {{ (1 / r.buy)|number_format(6, '.', ' ') }}
+                  {% else %}-{% endif %}
+                </td>
+                <td style="padding:20px;">
+                  {% if r and r.sell and r.sell > 0 %}
+                    {{ (1 / r.sell)|number_format(6, '.', ' ') }}
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius: 16px; padding: 24px;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+          <h2 style="margin:0 0 12px 0;">Exchange vous vend des devises</h2>
+          <form id="buy-form" method="get" action="{{ path('app_exchange') }}" style="display:grid; gap: 12px;">
+            <input type="hidden" name="do_buy" value="1" />
+            <input type="hidden" name="sell_currency" id="buy-hidden-sell" value="{{ sellSelected }}" />
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:center;">
+              <label style="font-weight:600;">Devise</label>
+              <select name="buy_currency" style="padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.04); color:var(--text);">
+                {% for c in currencies %}
+                  <option value="{{ c.code }}" {% if c.code == buySelected %}selected{% endif %}>{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
+                {% endfor %}
+              </select>
+              <label style="font-weight:600;">Euros (EUR)</label>
+              <input type="number" name="buy_eur" step="0.01" min="0" value="{{ buyEuro > 0 ? buyEuro : '' }}" style="padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.04); color:var(--text);" />
+              <label style="font-weight:600;">Montant en <span id="buy-currency-code">{{ buySelected }}</span></label>
+              <input type="number" name="buy_local" step="0.01" min="0" value="{{ buyLocal > 0 ? buyLocal : '' }}" style="padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.04); color:var(--text);" />
+            </div>
+            <div>
+              <button type="submit" class="btn btn-primary" style="width: 100%;">Calculer</button>
+            </div>
+          </form>
+          {% if buyResult %}
+            <div id="buy-result" style="margin-top:12px; background:rgba(79,124,255,0.08); border:1px solid rgba(79,124,255,0.35); padding:12px; border-radius:12px;">
+              <div><strong>{{ buyResult.eur|number_format(2, '.', ' ') }} EUR</strong> ≈ <strong>{{ buyResult.local|number_format(2, '.', ' ') }} {{ buySelected }}</strong> (taux BUY).</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div>
+          <h2 style="margin:0 0 12px 0;">Exchange vous achéte vos devises</h2>
+          <form id="sell-form" method="get" action="{{ path('app_exchange') }}" style="display:grid; gap: 12px;">
+            <input type="hidden" name="do_sell" value="1" />
+            <input type="hidden" name="buy_currency" id="sell-hidden-buy" value="{{ buySelected }}" />
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:center;">
+              <label style="font-weight:600;">Devise</label>
+              <select name="sell_currency" style="padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.04); color:var(--text);">
+                {% for c in currencies %}
+                  <option value="{{ c.code }}" {% if c.code == sellSelected %}selected{% endif %}>{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
+                {% endfor %}
+              </select>
+              <label style="font-weight:600;">Euros (EUR)</label>
+              <input type="number" name="sell_eur" step="0.01" min="0" value="{{ sellEuro > 0 ? sellEuro : '' }}" style="padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.04); color:var(--text);" />
+              <label style="font-weight:600;">Montant en <span id="sell-currency-code">{{ sellSelected }}</span></label>
+              <input type="number" name="sell_local" step="0.01" min="0" value="{{ sellLocal > 0 ? sellLocal : '' }}" style="padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.04); color:var(--text);" />
+            </div>
+            <div>
+              <button type="submit" class="btn btn-primary" style="width: 100%;">Calculer</button>
+            </div>
+          </form>
+          {% if sellResult %}
+            <div id="sell-result" style="margin-top:12px; background:rgba(127,86,217,0.08); border:1px solid rgba(127,86,217,0.35); padding:12px; border-radius:12px;">
+              <div><strong>{{ sellResult.local|number_format(2, '.', ' ') }} {{ sellSelected }}</strong> ≈ <strong>{{ sellResult.eur|number_format(2, '.', ' ') }} EUR</strong> (taux SELL).</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const buySelect = document.querySelector('select[name="buy_currency"]');
+    const sellSelect = document.querySelector('select[name="sell_currency"]');
+
+    const buyCodeSpan  = document.getElementById('buy-currency-code');
+    const sellCodeSpan = document.getElementById('sell-currency-code');
+
+    const buyResult  = document.getElementById('buy-result');
+    const sellResult = document.getElementById('sell-result');
+
+    const buyHiddenSell  = document.getElementById('buy-hidden-sell');
+    const sellHiddenBuy  = document.getElementById('sell-hidden-buy');
+
+    const buyEur   = document.querySelector('input[name="buy_eur"]');
+    const buyLocal = document.querySelector('input[name="buy_local"]');
+    const sellEur   = document.querySelector('input[name="sell_eur"]');
+    const sellLocal = document.querySelector('input[name="sell_local"]');
+
+    let syncing = false;
+
+    function updateLabelsAndHidden(code, hideResults) {
+      if (buyCodeSpan)  buyCodeSpan.textContent = code;
+      if (sellCodeSpan) sellCodeSpan.textContent = code;
+      if (buyHiddenSell) buyHiddenSell.value = code;
+      if (sellHiddenBuy) sellHiddenBuy.value = code;
+      if (hideResults) {
+        if (buyResult)  buyResult.style.display = 'none';
+        if (sellResult) sellResult.style.display = 'none';
+      }
+    }
+
+    function wireMutualClear(primary, secondary, onEdit) {
+      if (!primary || !secondary) return;
+      primary.addEventListener('input', () => {
+        if (primary.value !== '' && secondary.value !== '') {
+          secondary.value = '';
+        }
+        if (typeof onEdit === 'function') onEdit();
+      });
+      primary.addEventListener('focus', () => {
+        if (primary.value !== '' && secondary.value !== '') {
+          secondary.value = '';
+        }
+      });
+    }
+
+    if (buySelect && sellSelect) {
+      updateLabelsAndHidden(buySelect.value || sellSelect.value, false);
+
+      buySelect.addEventListener('change', () => {
+        if (syncing) return;
+        syncing = true;
+        sellSelect.value = buySelect.value;
+        updateLabelsAndHidden(buySelect.value, true);
+        syncing = false;
+      });
+
+      sellSelect.addEventListener('change', () => {
+        if (syncing) return;
+        syncing = true;
+        buySelect.value = sellSelect.value;
+        updateLabelsAndHidden(sellSelect.value, true);
+        syncing = false;
+      });
+    }
+
+    wireMutualClear(buyEur, buyLocal, () => { if (buyResult) buyResult.style.display = 'none'; });
+    wireMutualClear(buyLocal, buyEur, () => { if (buyResult) buyResult.style.display = 'none'; });
+    wireMutualClear(sellEur, sellLocal, () => { if (sellResult) sellResult.style.display = 'none'; });
+    wireMutualClear(sellLocal, sellEur, () => { if (sellResult) sellResult.style.display = 'none'; });
+  });
+</script>
+{% endblock %}
+

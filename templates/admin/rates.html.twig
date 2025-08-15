@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin - Taux{% endblock %}
+
+{% block body %}
+<div style="max-width: 1200px; margin: 2rem auto;">
+  <h1>Modifier les taux</h1>
+  {% for m in app.flashes('success') %}
+    <div style="background:#093;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('error') %}
+    <div style="background:#900;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>
+  {% endfor %}
+
+  <form method="post" action="{{ path('admin_rates', {mode: 'admin'}) }}" style="display:block;">
+    <table style="width:100%; border-collapse:collapse; border:1px solid var(--border);">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);">
+          <th style="padding:10px;text-align:left;">Code</th>
+          <th style="padding:10px;text-align:left;">Spot (mid)</th>
+          <th style="padding:10px;text-align:left;">Override mid</th>
+          <th style="padding:10px;text-align:left;">Mode</th>
+          <th style="padding:10px;text-align:left;">EUR→Local Manual Buy</th>
+          <th style="padding:10px;text-align:left;">EUR→Local Manual Sell</th>
+          <th style="padding:10px;text-align:left;">Local→EUR Manual Buy</th>
+          <th style="padding:10px;text-align:left;">Local→EUR Manual Sell</th>
+          <th style="padding:10px;text-align:left;">% Buy (vs mid)</th>
+          <th style="padding:10px;text-align:left;">% Sell (vs mid)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for code in codes %}
+          {% set r = rules[code] ?? null %}
+          {% set m = r ? r.mode : 'none' %}
+          {% set currentMid = overrides[code] is defined ? overrides[code] : null %}
+          {% set mb = r and r.manualBuy  is not null ? r.manualBuy  : '' %}
+          {% set ms = r and r.manualSell is not null ? r.manualSell : '' %}
+          {% set lb = (r and r.manualBuy  is not null and r.manualBuy  > 0) ? (1 / r.manualBuy)  : '' %}
+          {% set ls = (r and r.manualSell is not null and r.manualSell > 0) ? (1 / r.manualSell) : '' %}
+          <tr style="border-top:1px solid var(--border);" data-code="{{ code }}">
+            <td style="padding:8px;font-weight:600;">{{ code }}</td>
+            <td style="padding:8px;">
+              <em style="color:#93a1c6;">{% if currentMid %}{{ currentMid }}{% else %}- (spot par défaut){% endif %}</em>
+            </td>
+            <td style="padding:8px;">
+              <input name="mid_{{ code }}" value="{{ overrides[code]|default('') }}" placeholder="ex: 1.08"
+                     style="width:120px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+            <td style="padding:8px;">
+              <select name="mode_{{ code }}" style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);">
+                <option value="none"    {% if m == 'none' %}selected{% endif %}>Aucun</option>
+                <option value="manual"  {% if m == 'manual' %}selected{% endif %}>Manuel</option>
+                <option value="percent" {% if m == 'percent' %}selected{% endif %}>Pourcentage</option>
+              </select>
+            </td>
+
+            {# EUR→Local manual (sources) #}
+            <td style="padding:8px;">
+              <input name="mbuy_{{ code }}" value="{{ mb }}" placeholder="ex: 1.05"
+                     style="width:120px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+            <td style="padding:8px;">
+              <input name="msell_{{ code }}" value="{{ ms }}" placeholder="ex: 1.10"
+                     style="width:120px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+
+            {# Local→EUR manual (reciproques auto) #}
+            <td style="padding:8px;">
+              <input name="lbuy_{{ code }}" value="{{ lb is same as('') ? '' : lb|number_format(6, '.', '') }}" placeholder="ex: 0.952381"
+                     style="width:120px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+            <td style="padding:8px;">
+              <input name="lsell_{{ code }}" value="{{ ls is same as('') ? '' : ls|number_format(6, '.', '') }}" placeholder="ex: 0.909091"
+                     style="width:120px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+
+            {# Percent vs mid #}
+            <td style="padding:8px;">
+              <input name="pbuy_{{ code }}" value="{{ r and r.percentBuy  is not null ? r.percentBuy  : '' }}" placeholder="ex: 2.0"
+                     style="width:100px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+            <td style="padding:8px;">
+              <input name="psell_{{ code }}" value="{{ r and r.percentSell is not null ? r.percentSell : '' }}" placeholder="ex: 2.0"
+                     style="width:100px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text);" />
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const rows = document.querySelectorAll('tr[data-code]');
+  rows.forEach(row => {
+    const code = row.getAttribute('data-code');
+    const mb = row.querySelector(`input[name="mbuy_${code}"]`);
+    const ms = row.querySelector(`input[name="msell_${code}"]`);
+    const lb = row.querySelector(`input[name="lbuy_${code}"]`);
+    const ls = row.querySelector(`input[name="lsell_${code}"]`);
+
+    const syncReciprocal = (src, dst) => {
+      if (!src || !dst) return;
+      src.addEventListener('input', () => {
+        const v = parseFloat(src.value);
+        if (!isNaN(v) && v > 0) {
+          dst.value = (1 / v).toFixed(6);
+        } else if (src.value === '') {
+          dst.value = '';
+        }
+      });
+    };
+
+    // Keep both directions in sync for manual rates
+    syncReciprocal(mb, lb);
+    syncReciprocal(lb, mb);
+    syncReciprocal(ms, ls);
+    syncReciprocal(ls, ms);
+  });
+});
+</script>
+{% endblock %}

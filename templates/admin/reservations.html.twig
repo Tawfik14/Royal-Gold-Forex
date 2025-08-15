@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin - Réservations{% endblock %}
+
+{% block body %}
+<div style="max-width: 1100px; margin: 2rem auto;">
+  <h1>Réservations</h1>
+  {% for m in app.flashes('success') %}<div style="background:#093;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>{% endfor %}
+  {% for m in app.flashes('error') %}<div style="background:#900;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>{% endfor %}
+
+  <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);">
+    <thead>
+      <tr>
+        <th style="padding:10px;text-align:left;">Cmd</th>
+        <th style="padding:10px;text-align:left;">Client</th>
+        <th style="padding:10px;text-align:left;">Opération</th>
+        <th style="padding:10px;text-align:left;">Créée</th>
+        <th style="padding:10px;text-align:left;">Échéance</th>
+        <th style="padding:10px;text-align:left;">Statut</th>
+        <th style="padding:10px;text-align:left;">Détail</th>
+        <th style="padding:10px;text-align:left;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        {% set expired = (r.status == 'pending' and r.pickupDeadline < now) %}
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:10px;font-weight:600;">{{ r.orderCode }}</td>
+          <td style="padding:10px;">{{ r.firstName }} {{ r.lastName }}</td>
+          <td style="padding:10px;">{% if r.operation == 'buy' %}Achat{% else %}Vente{% endif %}</td>
+          <td style="padding:10px;">{{ r.createdAt|date('Y-m-d H:i') }}</td>
+          <td style="padding:10px;">{{ r.pickupDeadline|date('Y-m-d H:i') }}</td>
+          <td style="padding:10px;">
+            {% if r.status == 'completed' %}
+              <span style="color:#6ee7a3;">Transaction passée</span>
+            {% elseif expired %}
+              <span style="color:#ff9b9b;">Expirée</span>
+            {% else %}
+              <span style="color:#ffd166;">En attente</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px;">
+            <ul style="margin:0;padding-left:16px;">
+              {% for it in r.items %}
+                <li>{{ it.currency }} — EUR: {{ it.amountEuro ?? '-' }}, Local: {{ it.amountLocal ?? '-' }} (B: {{ it.rateBuy|number_format(4,'.',' ') }}, S: {{ it.rateSell|number_format(4,'.',' ') }})</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td style="padding:10px;">
+            {% if r.status != 'completed' %}
+            <form method="post" action="{{ path('admin_reservation_confirm', {id: r.id, mode: 'admin'}) }}">
+              <button class="btn btn-primary" type="submit">Confirmer retrait</button>
+            </form>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" style="padding:10px;color:#93a1c6;">Aucune réservation.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}{% endblock %}
+
