@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+{% block title %}Récapitulatif Réservation{% endblock %}
+
+{% block body %}
+{% set tz = 'Europe/Paris' %}
+{% set nowLocal = now ?? date(null, tz) %}
+{% set deadlineDay = reservation.pickupDeadline|date('Y-m-d', tz) %}
+{% set todayDay = nowLocal|date('Y-m-d', tz) %}
+{% set labelJour = deadlineDay == todayDay ? "aujourd’hui" : "demain" %}
+
+<div style="max-width: 1000px; margin: 2rem auto;">
+  <h1>Récapitulatif de votre réservation</h1>
+
+  <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0;">
+    <div><strong>Commande:</strong> {{ reservation.orderCode }}</div>
+    <div><strong>Nom:</strong> {{ reservation.firstName }} {{ reservation.lastName }}</div>
+    <div><strong>Opération:</strong> {% if reservation.operation == 'buy' %}Achat de devises{% else %}Vente de devises{% endif %}</div>
+    <div><strong>Créée le:</strong> {{ reservation.createdAt|date('Y-m-d H:i', tz) }}</div>
+    <div><strong>À retirer avant:</strong> {{ reservation.pickupDeadline|date('Y-m-d H:i', tz) }} ({{ labelJour }} avant 19h)</div>
+
+    {# --- Temps restant en H + min (Europe/Paris) --- #}
+    {% set seconds = (reservation.pickupDeadline|date('U', tz) - nowLocal|date('U', tz)) %}
+    {% set totalMins = (seconds / 60)|round(0, 'floor') %}
+    {% if totalMins > 0 %}
+      {% set hours = (totalMins // 60) %}
+      {% set mins  = (totalMins % 60) %}
+      <div><strong>Temps restant:</strong> {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}min</div>
+    {% else %}
+      <div><strong>Temps restant:</strong> <span style="color:#f55;">Échéance dépassée</span></div>
+    {% endif %}
+  </div>
+
+  <h3>Détail</h3>
+  <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);">
+    <thead>
+      <tr>
+        <th style="padding:10px;text-align:left;">Devise</th>
+        <th style="padding:10px;text-align:left;">Montant EUR</th>
+        <th style="padding:10px;text-align:left;">Montant Devise</th>
+        <th style="padding:10px;text-align:left;">EUR→Local Buy</th>
+        <th style="padding:10px;text-align:left;">EUR→Local Sell</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in reservation.items %}
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:10px;">{{ it.currency }}</td>
+          <td style="padding:10px;">{{ it.amountEuro ?? '-' }}</td>
+          <td style="padding:10px;">{{ it.amountLocal ?? '-' }}</td>
+          <td style="padding:10px;">{{ it.rateBuy|number_format(4, '.', ' ') }}</td>
+          <td style="padding:10px;">{{ it.rateSell|number_format(4, '.', ' ') }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="background:rgba(103,232,249,0.08);border:1px solid rgba(103,232,249,0.35);border-radius:12px;padding:14px;margin-top:14px;">
+    <p>Merci pour votre réservation. Veuillez apporter une pièce d’identité lors du retrait. Votre numéro de commande est <strong>{{ reservation.orderCode }}</strong>.</p>
+    <p>Les montants et taux ci-dessus seront appliqués à votre passage en agence. Ouvert du <strong>lundi au samedi</strong> de <strong>09:30</strong> à <strong>19:00</strong> (heure de Paris). <strong>Fermé le dimanche.</strong></p>
+  </div>
+
+  <div style="margin-top:12px;">
+    <a class="btn" href="{{ path('app_reservation', {mode: mode}) }}">Retour à l’accueil</a>
+  </div>
+</div>
+{% endblock %}
+

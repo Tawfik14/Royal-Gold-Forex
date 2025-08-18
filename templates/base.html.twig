@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Exchange{% endblock %}</title>
+
+    {% block stylesheets %}
+    <style>
+      :root{ --bg:#0b1020; --text:#e6ebff; --muted:#93a1c6; --primary:#4f7cff; --primary-2:#7f56d9; --border:rgba(255,255,255,0.08); }
+      *{box-sizing:border-box}
+      body{margin:0;background:linear-gradient(180deg,#0b1020 0%,#0d1328 100%);color:var(--text)}
+      a{color:inherit;text-decoration:none}
+      .site-header{position:sticky;top:0;z-index:40;backdrop-filter:saturate(180%) blur(12px);background:rgba(11,16,32,0.6);border-bottom:1px solid var(--border)}
+      .site-header-inner{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;height:72px}
+      .logo{display:inline-flex;align-items:center;gap:12px;margin-left:8px}
+      .logo img{height:72px;width:auto;display:block}
+      .nav-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+      .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-weight:600;letter-spacing:.2px;transition:all 160ms ease}
+      .btn:hover{transform:translateY(-1px);background:rgba(255,255,255,0.06)}
+      .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));border-color:transparent}
+      /* ✅ Bouton Inscription avec bordure transparente (le fond dégradé s’étend) */
+      .btn-register{
+        background:linear-gradient(135deg,var(--primary),var(--primary-2));
+        border:1px solid transparent;
+        background-clip: padding-box; /* important pour bien "clipper" le dégradé */
+      }
+      .btn[aria-disabled="true"]{opacity:.5;pointer-events:none}
+      .menu{position:relative}
+      .menu-btn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.03);cursor:pointer}
+      .menu-lines{width:18px;height:2px;background:var(--text);position:relative}
+      .menu-lines::before,.menu-lines::after{content:"";position:absolute;left:0;right:0;height:2px;background:var(--text)}
+      .menu-lines::before{top:-6px}.menu-lines::after{top:6px}
+      .menu-panel{position:absolute;top:52px;right:0;background:#0f1530;border:1px solid var(--border);border-radius:12px;min-width:240px;box-shadow:0 12px 40px rgba(0,0,0,0.4);display:none}
+      .menu.open .menu-panel{display:block}
+      .menu-list{list-style:none;margin:0;padding:8px}
+      .menu-list a{display:block;padding:10px 12px;border-radius:10px}
+      .menu-list a:hover{background:rgba(255,255,255,0.06)}
+      .page-content{padding:12px 16px}
+      @media (min-width:1024px){.page-content{padding:16px}}
+    </style>
+    {% endblock %}
+
+    {% block javascripts %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        const m=document.querySelector('.menu');
+        if(m){
+          m.querySelector('.menu-btn').addEventListener('click',()=>m.classList.toggle('open'));
+          document.addEventListener('click',(e)=>{ if(!m.contains(e.target)) m.classList.remove('open'); });
+        }
+      });
+    </script>
+    {% endblock %}
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="{{ path('app_exchange', {mode: mode|default('guest')}) }}" class="logo" aria-label="Accueil">
+          <img src="/Logo/logo.png" alt="Logo">
+        </a>
+
+        <nav class="nav-actions" aria-label="Navigation principale">
+          <a class="btn" href="{{ path('app_exchange', {mode: mode|default('guest')}) }}">Accueil</a>
+          <a class="btn" href="{{ path('app_contact', {mode: mode|default('guest')}) }}">Contact & À propos</a>
+          <a class="btn"
+             href="{{ path('app_reservation', {mode: mode|default('guest')}) }}"
+             aria-disabled="{{ mode|default('guest') == 'guest' ? 'true' : 'false' }}"
+             title="{{ mode|default('guest') == 'guest' ? 'Connectez-vous pour réserver' : '' }}">
+            Réservation
+          </a>
+
+          {% if mode|default('guest') == 'guest' %}
+            <a class="btn" href="{{ path('app_login', {mode: 'guest'}) }}">Connexion</a>
+            <!-- ✅ Bouton Inscription avec bordure transparente -->
+            <a class="btn btn-register" href="{{ path('app_register', {mode: 'guest'}) }}">Inscription</a>
+          {% else %}
+            <a class="btn" href="{{ path('app_logout') }}">Déconnexion</a>
+          {% endif %}
+
+          {% if mode|default('guest') == 'admin' %}
+            <div class="menu">
+              <button type="button" class="menu-btn" aria-label="Menu administrateur">
+                <span class="menu-lines"></span>
+              </button>
+              <div class="menu-panel">
+                <ul class="menu-list">
+                  <li><a href="{{ path('admin_reservations', {mode: 'admin'}) }}">Réservations</a></li>
+                  <li><a href="{{ path('admin_messages', {mode: 'admin'}) }}">Messages contact</a></li>
+                  <li><a href="{{ path('admin_rates', {mode: 'admin'}) }}">Modifier les taux</a></li>
+                  <li><a href="{{ path('admin_invoice', {mode: 'admin'}) }}">Facture</a></li>
+                  <li><a href="{{ path('admin_display', {mode: 'admin'}) }}">Affichage</a></li>
+                  <li><a href="{{ path('admin_screen', {mode: 'admin'}) }}" target="_blank">Écran (défilement)</a></li>
+                </ul>
+              </div>
+            </div>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-content">
+      {% block body %}{% endblock %}
+    </main>
+  </body>
+</html>
+

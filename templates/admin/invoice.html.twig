@@ -1,0 +1,325 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin - Facture{% endblock %}
+
+{% block body %}
+<div style="max-width: 1100px; margin: 2rem auto; display:grid; gap:20px;">
+
+  {# ====== MESSAGES ====== #}
+  {% for m in app.flashes('error') %}
+    <div style="background:#8b1d1d;color:#fff;padding:.6rem 1rem;border-radius:10px;">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('success') %}
+    <div style="background:#155e2b;color:#fff;padding:.6rem 1rem;border-radius:10px;">{{ m }}</div>
+  {% endfor %}
+
+  {# ====== HAUT : Infos client & paiement ====== #}
+  <section style="border:1px solid var(--border); border-radius:12px; padding:22px; background:rgba(255,255,255,0.02);">
+    <h1 style="margin:0 0 14px 0;">Créer une facture</h1>
+
+    {# On sépare le formulaire principal en bas, donc on relie ici via form="invoice-form" #}
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+      <div style="max-width: 420px;">
+        <label style="display:block;margin-bottom:6px;">Prénom</label>
+        <input name="first_name" form="invoice-form" required
+               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+      <div style="max-width: 420px;">
+        <label style="display:block;margin-bottom:6px;">Nom</label>
+        <input name="last_name" form="invoice-form" required
+               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:16px; margin-top:14px;">
+      <div style="max-width: 260px;">
+        <label style="display:block;margin-bottom:6px;">Date de naissance</label>
+        <input type="text" name="dob" form="invoice-form" required placeholder="JJ/MM/AAAA"
+               pattern="^\\d{1,2}[\\/\\-\\.\\s]\\d{1,2}[\\/\\-\\.\\s]\\d{4}$"
+               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+      <div style="max-width: 660px;">
+        <label style="display:block;margin-bottom:6px;">Adresse</label>
+        <input name="address" form="invoice-form" required placeholder="Rue, CP, Ville, Pays"
+               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      </div>
+    </div>
+
+    <div style="margin-top:14px; max-width: 260px;">
+      <label style="display:block;margin-bottom:6px;">Moyen de paiement</label>
+      <select name="payment" form="invoice-form"
+              style="width:100%; padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);">
+        <option value="cash">Espèces</option>
+        <option value="card">Carte de crédit</option>
+        <option value="transfer">Virement</option>
+      </select>
+    </div>
+  </section>
+
+  {# ====== BAS : Lignes devises (formulaire principal) ====== #}
+  <form id="invoice-form" method="post" action="{{ path('admin_invoice', {mode: 'admin'}) }}"
+        style="border:1px solid var(--border); border-radius:12px; padding:18px; background:rgba(255,255,255,0.02); display:grid; gap:18px;">
+
+    <h3 style="margin:0;">Lignes devises</h3>
+
+    <style>
+      /* Lignes en colonne + espacements supplémentaires entre groupes */
+      .fx-row{
+        display:flex;
+        flex-direction:column;      /* <-- colonne */
+        gap:12px;                   /* petit gap entre éléments "proches" */
+        padding:16px 0;
+        border-top:1px dashed var(--border);
+      }
+      .fx-first{ border-top:0 }
+
+      /* Espaces supplémentaires demandés entre les 4 grands blocs */
+      .group-cur   { margin-bottom:10px; }  /* après Devise */
+      .group-amt   { margin-bottom:16px; }  /* après Montant Devise */
+      .group-rates { margin-bottom:16px; }  /* après Taux */
+      /* Montant EUR vient en dernier, pas besoin d'espace sous lui */
+
+      .mini-tabs{display:inline-flex; gap:6px; padding:4px; border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,0.04)}
+      .mini-tabs button{
+        border:0; padding:6px 10px; border-radius:999px; background:transparent; color:var(--text); cursor:pointer; font-weight:700;
+      }
+      .mini-tabs button.active{ background:rgba(79,124,255,0.18) }
+
+      .fx-field{
+        width:100%; padding:10px;
+        border:1px solid var(--border); border-radius:10px;
+        background:rgba(255,255,255,0.03); color:var(--text);
+      }
+
+      /* Taux : on garde les deux champs côte à côte, centrés, même si la ligne est en colonne */
+      .rates-pack{
+        display:flex; justify-content:center; gap:28px;
+        padding:6px 0;
+        flex-wrap:wrap;
+      }
+      .rates-pack > div{ width: min(320px, 100%); }
+
+      /* Champs non full width (si tu veux limiter) */
+      .w-s   { width: min(260px, 100%); }
+      .w-m   { width: min(420px, 100%); }
+      .w-l   { width: min(660px, 100%); }
+
+      .fx-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+
+      /* --- SUPPRIMER LES FLÈCHES des <input type="number"> --- */
+      /* Chrome, Edge, Safari */
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button{
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      /* Firefox */
+      input[type="number"]{
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+    </style>
+
+    <div id="items" style="display:grid; gap:0;">
+      <div class="fx-row fx-first row" data-mode="vente">
+        <!-- Onglets Achat/Vente -->
+        <div>
+          <div class="mini-tabs">
+            <button type="button" class="tab-btn active" data-mode="vente">Vente</button>
+            <button type="button" class="tab-btn" data-mode="achat">Achat</button>
+          </div>
+        </div>
+
+        <!-- (1) Devise -->
+        <div class="w-m group-cur">
+          <label style="display:block;margin-bottom:6px;">Devise</label>
+          <select name="item_currency[]" class="curSel fx-field">
+            <option value="">Choisir…</option>
+            {% for c in currencies %}
+              <option value="{{ c.code }}">{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- (2) Montant devise -->
+        <div class="w-m group-amt">
+          <label style="display:block;margin-bottom:6px;">Montant Devise</label>
+          <input name="item_local[]" class="amtLOC fx-field" type="number" step="0.01" min="0" placeholder="0,00" />
+        </div>
+
+        <!-- (3) Taux -->
+        <div class="rates-pack group-rates">
+          <div>
+            <label style="display:block;margin-bottom:6px;">Tx EUR→Dev</label>
+            <input name="item_rate_el[]" class="rateEL fx-field" type="number" step="0.0001" min="0" placeholder="1.1000" />
+          </div>
+          <div>
+            <label style="display:block;margin-bottom:6px;">Tx Dev→EUR</label>
+            <input name="item_rate_le[]" class="rateLE fx-field" type="number" step="0.0001" min="0" placeholder="0.9091" />
+          </div>
+        </div>
+
+        <!-- (4) Montant EUR -->
+        <div class="w-m">
+          <label style="display:block;margin-bottom:6px;">Montant EUR</label>
+          <input name="item_eur[]" class="amtEUR fx-field" type="number" step="0.01" min="0" placeholder="0,00" />
+        </div>
+      </div>
+    </div>
+
+    <div class="fx-actions">
+      <button type="button" id="add-row" class="btn">Ajouter une devise</button>
+      <button class="btn btn-primary" type="submit">Générer la facture (PDF)</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const items = document.getElementById('items');
+  const addRow = document.getElementById('add-row');
+
+  // Quotes de base (EUR->Local): { code: { buy, sell } }
+  const BASE_QUOTES = (function(){ try { return {{ baseQuotes|json_encode|raw }}; } catch(e){ return {}; } })();
+
+  // Utils
+  const parseNum = v => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = parseFloat(String(v).replace(',', '.'));
+    return isNaN(n) ? null : n;
+  };
+  const fmt2 = n => (Math.round(n * 100) / 100).toFixed(2);
+  const fmt4 = n => (Math.round(n * 10000) / 10000).toFixed(4);
+
+  function getEls(row){
+    return {
+      modeBtns: row.querySelectorAll('.tab-btn'),
+      curSel:   row.querySelector('.curSel'),
+      elEl:     row.querySelector('.rateEL'),
+      leEl:     row.querySelector('.rateLE'),
+      locEl:    row.querySelector('.amtLOC'),
+      eurEl:    row.querySelector('.amtEUR'),
+    };
+  }
+
+  // Applique les taux liés au mode actuel (achat/vente) pour la devise choisie.
+  // force=true : remplace toujours; sinon ne fait rien si l'un des taux est déjà rempli.
+  function applyModeRates(row, force){
+    const { curSel, elEl, leEl } = getEls(row);
+    const code = curSel?.value || '';
+    const q = BASE_QUOTES[code];
+    if (!q) return;
+    const mode = row.dataset.mode || 'vente';
+    const base = (mode === 'achat') ? q.buy : q.sell;
+    if (!base || base <= 0) return;
+
+    const EL = parseNum(elEl.value);
+    const LE = parseNum(leEl.value);
+
+    if (force || (!(EL > 0) && !(LE > 0))) {
+      elEl.value = fmt4(base);
+      leEl.value = fmt4(1 / base);
+    }
+  }
+
+  function recomputeAmounts(row){
+    const { elEl, leEl, locEl, eurEl } = getEls(row);
+    const EL = parseNum(elEl.value);
+    const LE = parseNum(leEl.value);
+    const EUR = parseNum(eurEl.value);
+    const LOC = parseNum(locEl.value);
+
+    if (EUR !== null && (LOC === null || LOC === 0)) {
+      if (EL && EL > 0)      locEl.value = fmt2(EUR * EL);
+      else if (LE && LE > 0) locEl.value = fmt2(EUR / LE);
+    } else if (LOC !== null && (EUR === null || EUR === 0)) {
+      if (LE && LE > 0)      eurEl.value = fmt2(LOC * LE);
+      else if (EL && EL > 0) eurEl.value = fmt2(LOC / EL);
+    }
+  }
+
+  function wireRow(row){
+    const { modeBtns, curSel, elEl, leEl, locEl, eurEl } = getEls(row);
+
+    // Onglets Achat/Vente
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        row.dataset.mode = btn.dataset.mode; // 'vente' | 'achat'
+        applyModeRates(row, true);   // change les taux quand on change d'onglet
+        recomputeAmounts(row);
+      });
+    });
+
+    // Devise
+    curSel?.addEventListener('change', () => {
+      applyModeRates(row, true);    // change les taux quand on change de devise
+      recomputeAmounts(row);
+    });
+
+    // Taux: réciproques au blur, recalc montants
+    elEl?.addEventListener('input', () => { if (document.activeElement === elEl) leEl.value = ''; });
+    leEl?.addEventListener('input', () => { if (document.activeElement === leEl) elEl.value = ''; });
+
+    elEl?.addEventListener('blur', () => {
+      const EL = parseNum(elEl.value);
+      if (EL && EL > 0) {
+        elEl.value = fmt4(EL);
+        leEl.value = fmt4(1 / EL);
+      }
+      recomputeAmounts(row);
+    });
+    leEl?.addEventListener('blur', () => {
+      const LE = parseNum(leEl.value);
+      if (LE && LE > 0) {
+        leEl.value = fmt4(LE);
+        elEl.value = fmt4(1 / LE);
+      }
+      recomputeAmounts(row);
+    });
+
+    // Montants: vider l’autre pendant la saisie, calculer au blur
+    locEl?.addEventListener('input', () => { if (document.activeElement === locEl) eurEl.value = ''; });
+    eurEl?.addEventListener('input', () => { if (document.activeElement === eurEl) locEl.value = ''; });
+
+    locEl?.addEventListener('blur', () => {
+      const v = parseNum(locEl.value); if (v !== null) locEl.value = fmt2(v);
+      recomputeAmounts(row);
+    });
+    eurEl?.addEventListener('blur', () => {
+      const v = parseNum(eurEl.value); if (v !== null) eurEl.value = fmt2(v);
+      recomputeAmounts(row);
+    });
+
+    // Seed initial (si devise déjà choisie)
+    applyModeRates(row, false);
+  }
+
+  function wireAll(){
+    items.querySelectorAll('.row').forEach(wireRow);
+  }
+  wireAll();
+
+  // Ajout de ligne
+  addRow?.addEventListener('click', () => {
+    const last = items.querySelector('.row:last-of-type');
+    const clone = last.cloneNode(true);
+
+    // reset valeurs
+    clone.dataset.mode = 'vente';
+    clone.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === 'vente');
+    });
+    clone.querySelectorAll('input').forEach(i => i.value = '');
+    clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+
+    items.appendChild(clone);
+    wireRow(clone);
+  });
+});
+</script>
+{% endblock %}
+

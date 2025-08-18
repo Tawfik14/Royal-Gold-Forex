@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+{% block title %}Contact & À propos{% endblock %}
+
+{% block body %}
+<div style="max-width: 1100px; margin: 2rem auto; display: grid; gap: 24px;">
+  <h1>Contact & À propos</h1>
+
+  {% for m in app.flashes('success') %}
+    <div style="background:#0b5e2b;color:#fff;padding:.75rem 1rem;border-radius:10px;">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('error') %}
+    <div style="background:#8b1d1d;color:#fff;padding:.75rem 1rem;border-radius:10px;">{{ m }}</div>
+  {% endfor %}
+
+  <div style="display:grid; grid-template-columns: 1.2fr .8fr; gap: 20px;">
+    <section style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <h2 id="form" style="margin:0 0 10px 0;">Nous écrire</h2>
+      <form method="post" action="{{ path('app_contact', {mode: mode}) }}" style="display:grid; gap: 12px;">
+        <div>
+          <label>Nom</label>
+          <input name="name" required
+                 {% if mode == 'guest' %}disabled{% endif %}
+                 style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" name="email" required
+                 {% if mode == 'guest' %}disabled{% endif %}
+                 style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+        </div>
+        <div>
+          <label>Message</label>
+          <textarea name="message" rows="5" required
+                    {% if mode == 'guest' %}disabled{% endif %}
+                    style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);"></textarea>
+          {% if mode == 'guest' %}
+            <small style="color:#93a1c6;">Connectez-vous pour pouvoir envoyer un message.</small>
+          {% endif %}
+        </div>
+        <div>
+          <button class="btn btn-primary" type="submit" {% if mode == 'guest' %}disabled{% endif %}>Envoyer</button>
+        </div>
+      </form>
+    </section>
+
+    <aside style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <h2 style="margin:0 0 10px 0;">Coordonnées</h2>
+      <ul style="list-style:none; padding:0; margin:0; color:var(--text); display:grid; gap:8px;">
+        <li><strong>Bureau de change</strong>: Mon Bureau de Change Paris Centre</li>
+        <li><strong>Adresse</strong>: 123 Rue du Change, 75001 Paris</li>
+        <li><strong>Téléphone</strong>: <a href="tel:+33123456789">+33 1 23 45 67 89</a></li>
+        <li><strong>Email</strong>: <a href="mailto:contact@mon-bureau-change.fr">contact@mon-bureau-change.fr</a></li>
+        <li><strong>Horaires</strong>: Lun–Sam 09:00–19:00, Dim fermé</li>
+        <li><strong>WhatsApp</strong>: <a href="https://wa.me/33123456789" target="_blank" rel="noopener">+33 1 23 45 67 89</a></li>
+        <li><strong>Plan</strong>: <a href="https://maps.google.com/?q=123+Rue+du+Change+75001+Paris" target="_blank" rel="noopener">Voir sur Google Maps</a></li>
+      </ul>
+      <div style="margin-top:10px; color:#93a1c6;">
+        Pièce d’identité requise pour toute transaction. Taux indicatifs susceptibles d’évoluer selon le marché.
+      </div>
+    </aside>
+  </div>
+
+  <section id="apropos" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; padding:16px;">
+    <h2 style="margin:0 0 10px 0;">À propos de notre bureau de change</h2>
+    <p style="color:var(--muted);">
+      Depuis plusieurs années, notre bureau de change accompagne particuliers et professionnels pour l’achat et la vente
+      de devises aux meilleurs taux. Nous couvrons un large choix de monnaies (USD, GBP, CHF, JPY, XOF, XAF, ZAR…)
+      et mettons à jour nos cours tout au long de la journée.
+    </p>
+    <ul style="color:var(--text); margin:0; padding-left:18px;">
+      <li>Réservation en ligne, retrait le jour-même avant 19h</li>
+      <li>Règlement en espèces ou carte bancaire (selon montant)</li>
+      <li>Conseils personnalisés pour vos voyages et transferts</li>
+      <li>Conformité réglementaire et traçabilité des opérations</li>
+    </ul>
+  </section>
+
+  {# CTA en bas: Réservation (nécessite connexion) #}
+  <div style="margin-top:8px; display:flex; gap:10px; justify-content:flex-start;">
+    <a class="btn btn-primary"
+       href="{{ path('app_reservation', {mode: mode|default('guest')}) }}"
+       {% if mode|default('guest') == 'guest' %}aria-disabled="true" onclick="return false;"{% endif %}>
+      Réserver maintenant
+    </a>
+    {% if mode|default('guest') == 'guest' %}
+      <small style="align-self:center; color:#93a1c6;">Connectez-vous pour pouvoir réserver.</small>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

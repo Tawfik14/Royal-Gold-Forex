@@ -1,0 +1,257 @@
+{% extends 'base.html.twig' %}
+{% block title %}Réservation{% endblock %}
+
+{% block body %}
+{% set tz = 'Europe/Paris' %}
+{% set disabled_attr = isOpen ? '' : 'disabled' %}
+{% set nowLocal = now ?? date(null, tz) %}
+{% set isSundayLocal = isSunday is defined ? isSunday : (nowLocal|date('N', tz) == '7') %}
+
+<style>
+  .card {
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  }
+  .card h2 {
+    margin-top: 0;
+    font-size: 1.25rem;
+    letter-spacing: .2px;
+  }
+  .form-grid {
+    display: grid;
+    gap: 12px;
+  }
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .field label {
+    display:block;
+    font-size:.9rem;
+    color:#a8b3cf;
+    margin-bottom:6px;
+  }
+  .field input,
+  .field select {
+    width:100%;
+    padding:12px 10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:rgba(255,255,255,0.05);
+    color:var(--text);
+    outline:none;
+  }
+  .field input:focus,
+  .field select:focus {
+    border-color:#7dd3fc;
+    box-shadow:0 0 0 3px rgba(125,211,252,.25);
+  }
+  .items-grid {
+    display:grid;
+    gap:10px;
+  }
+  .item-row {
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap:10px;
+    align-items:end;
+  }
+  .actions {
+    display:flex;
+    gap:10px;
+    margin-top:2px;
+  }
+  .btn {
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,0.06);
+    color:var(--text);
+    cursor:pointer;
+  }
+  .btn[disabled] { opacity:.6; cursor:not-allowed; }
+  .btn-primary {
+    background:#2563eb;
+    border-color:#1e40af;
+    color:#fff;
+  }
+  .notice {
+    background:rgba(255,255,255,0.06);
+    color:#cfe7d3;
+    padding:.6rem 1rem;
+    border-radius:10px;
+    margin:1rem 0;
+  }
+  .notice--warning {
+    background:#5b2; color:#fff;
+  }
+  .flash-success { background:#093;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0; }
+  .flash-error { background:#900;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0; }
+
+  /* Largeur spécifique 35% pour le champ "Je souhaite" */
+  .w-35 {
+    width: 35%;
+    min-width: 200px;
+  }
+
+  @media (max-width: 720px) {
+    .form-row-2, .item-row { grid-template-columns: 1fr; }
+    .w-35 { width: 100%; } /* sur mobile, occupe toute la largeur */
+  }
+</style>
+
+<div style="max-width: 1100px; margin: 2rem auto;">
+  <h1>Réserver des devises</h1>
+
+  {% if not isOpen %}
+    <div class="notice notice--warning">
+      {% if isSundayLocal %}
+        Les réservations sont <strong>fermées le dimanche</strong>. Réessayez <strong>lundi</strong> à partir de <strong>{{ openLabel }}</strong> (heure de Paris).
+      {% else %}
+        Les réservations sont ouvertes du <strong>{{ openDaysLabel }}</strong> de <strong>{{ openLabel }}</strong> à <strong>{{ closeLabel }}</strong> (heure de Paris).
+        Merci de réserver lors de ce créneau.
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="notice">
+      Ouvert du <strong>{{ openDaysLabel }}</strong> de <strong>{{ openLabel }}</strong> à <strong>{{ closeLabel }}</strong> (heure de Paris). Fermé le dimanche.
+    </div>
+  {% endif %}
+
+  {% for m in app.flashes('success') %}
+    <div class="flash-success">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('error') %}
+    <div class="flash-error">{{ m }}</div>
+  {% endfor %}
+
+  <div class="card">
+    <h2>Formulaire de réservation</h2>
+
+    <form method="post" action="{{ path('app_reservation', {mode: mode}) }}" class="form-grid">
+      <div class="form-row-2">
+        <div class="field">
+          <label>Prénom</label>
+          <input name="first_name" required {{ disabled_attr }} />
+        </div>
+        <div class="field">
+          <label>Nom</label>
+          <input name="last_name" required {{ disabled_attr }} />
+        </div>
+      </div>
+
+      <div class="field w-35">
+        <label>Je souhaite</label>
+        <select name="operation" {{ disabled_attr }}>
+          <option value="buy">Acheter des devises (je paie en EUR)</option>
+          <option value="sell">Vendre des devises (je reçois des EUR)</option>
+        </select>
+      </div>
+
+      <div id="items" class="items-grid">
+        <div class="item-row">
+          <div class="field">
+            <label>Devise</label>
+            <select name="item_currency[]" {{ disabled_attr }}>
+              <option value="">Choisir…</option>
+              {% for c in currencies %}
+                <option value="{{ c.code }}">{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Montant EUR</label>
+            <input name="item_eur[]" type="number" step="0.01" min="0" placeholder="ex: 100.00" {{ disabled_attr }} />
+          </div>
+          <div class="field">
+            <label>Montant devise</label>
+            <input name="item_local[]" type="number" step="0.01" min="0" placeholder="ex: 120.00" {{ disabled_attr }} />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="add-row" class="btn" {{ disabled_attr }}>Ajouter une devise</button>
+        <button class="btn btn-primary" type="submit" {{ disabled_attr }}>Réserver</button>
+      </div>
+    </form>
+  </div>
+
+  <hr style="margin:2rem 0;border-color:var(--border);" />
+
+  <h2>Mes réservations</h2>
+  {% if myReservations is empty %}
+    <p style="color:#93a1c6;">Aucune réservation.</p>
+  {% else %}
+    <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);">
+      <thead>
+        <tr>
+          <th style="padding:10px;text-align:left;">Commande</th>
+          <th style="padding:10px;text-align:left;">Date</th>
+          <th style="padding:10px;text-align:left;">Échéance</th>
+          <th style="padding:10px;text-align:left;">Statut</th>
+          <th style="padding:10px;text-align:left;">Détail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set nowLocal = now ?? date(null, tz) %}
+        {% for r in myReservations %}
+          {% set expired = (r.status == 'pending' and r.pickupDeadline < nowLocal) %}
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:10px;font-weight:600;">{{ r.orderCode }}</td>
+            <td style="padding:10px;">{{ r.createdAt|date('Y-m-d H:i', tz) }}</td>
+            <td style="padding:10px;">{{ r.pickupDeadline|date('Y-m-d H:i', tz) }}</td>
+            <td style="padding:10px;">
+              {% if r.status == 'completed' %}
+                <span style="color:#6ee7a3;">Transaction passée</span>
+              {% else %}
+                {# calcul heures + minutes restantes à l'heure de Paris #}
+                {% set seconds = (r.pickupDeadline|date('U', tz) - nowLocal|date('U', tz)) %}
+                {% set totalMins = (seconds / 60)|round(0, 'floor') %}
+                {% if totalMins <= 0 %}
+                  <span style="color:#ff9b9b;">Expirée</span>
+                {% else %}
+                  {% set hours = (totalMins // 60) %}
+                  {% set mins  = (totalMins % 60) %}
+                  <span style="color:#ffd166;">
+                    {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}min restantes
+                  </span>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td style="padding:10px;">
+              <a class="btn" href="{{ path('app_reservation_recap', {id: r.id, mode: mode}) }}">Voir</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const addBtn = document.getElementById('add-row');
+  const items = document.getElementById('items');
+  if (addBtn && items) {
+    addBtn.addEventListener('click', () => {
+      if (addBtn.hasAttribute('disabled')) return; // fermé : pas d'ajout
+      const row = document.querySelector('.item-row');
+      const clone = row.cloneNode(true);
+      clone.querySelectorAll('input').forEach(i => i.value = '');
+      clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+      items.appendChild(clone);
+    });
+  }
+});
+</script>
+{% endblock %}
+
