@@ -306,6 +306,21 @@ class AdminController extends AbstractController
             'direction' => $config->getDirection(),
         ]);
     }
+    
+    #[Route('/admin', name: 'admin_dashboard')]
+public function dashboard(Request $request): Response
+{
+    $mode = $request->query->get('mode', 'guest');
+    if ($mode !== 'admin') {
+        $this->addFlash('error', 'Accès réservé à l’administrateur.');
+        return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+    }
+
+    return $this->render('admin/dashboard.html.twig', [
+        'mode' => 'admin',
+    ]);
+}
+
 
     #[Route('/admin/screen', name: 'admin_screen', methods: ['GET'])]
     public function screen(
