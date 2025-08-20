@@ -1,53 +1,127 @@
 {% extends 'base.html.twig' %}
-{% block title %}Admin - Facture{% endblock %}
+{% block title %}Admin — Facture{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    /* ===== Style aligné aux formulaires précédents (Poppins, texte noir, bords droits) ===== */
+    .invoice-wrap, .invoice-wrap *{ font-family:'Poppins',sans-serif; color:#000; }
+
+    .invoice-wrap{ max-width:1100px; margin:40px auto; padding:0 20px; display:grid; gap:22px; }
+    .invoice-wrap h1{ margin:0 0 8px; font-size:26px; font-weight:700; letter-spacing:.2px; }
+    .invoice-wrap h3{ margin:6px 0 0; font-size:18px; font-weight:600; }
+
+    /* Sections : pas de contour, juste de l’air */
+    .block{ display:grid; gap:14px; }
+    .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .grid-12-24{ display:grid; grid-template-columns:1fr 2fr; gap:16px; }
+    @media (max-width:900px){
+      .grid-2, .grid-12-24{ grid-template-columns:1fr; }
+    }
+
+    label{ display:block; margin-bottom:6px; font-weight:600; }
+
+    /* Champs : bords droits, focus simple, pas de flèches pour number */
+    .field{
+      width:100%; padding:12px 14px;
+      border:1px solid #000; border-radius:0; background:#fff;
+      outline:none;
+    }
+    .field:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+    /* Chrome/Edge/Safari */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    /* Firefox */
+    input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
+
+    /* Mini onglets Achat/Vente : bords droits */
+    .mini-tabs{
+      display:inline-flex; gap:6px; padding:4px;
+      border:1px solid #000; border-radius:0; background:#fff;
+    }
+    .mini-tabs .tab-btn{
+      border:1px solid transparent; background:#fff; color:#000;
+      padding:6px 10px; border-radius:0; cursor:pointer; font-weight:600;
+    }
+    .mini-tabs .tab-btn.active{
+      background:#000; color:#fff; border-color:#000;
+    }
+
+    /* Lignes devise en colonne + espaces */
+    .fx-row{ display:flex; flex-direction:column; gap:14px; padding:16px 0; border-top:1px dashed #000; }
+    .fx-row.fx-first{ border-top:0; }
+
+    .rates-pack{ display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+    .rates-pack > div{ width:min(320px,100%); }
+
+    .w-s{ width:min(260px,100%); }
+    .w-m{ width:min(420px,100%); }
+    .w-l{ width:min(660px,100%); }
+
+    /* Boutons : noir, bords droits */
+    .btn-black{
+      appearance:none; border:1px solid #000; background:#000; color:#fff;
+      padding:12px 16px; border-radius:0; font-weight:700; line-height:1; cursor:pointer;
+    }
+    .btn-black:hover{ opacity:.9; }
+    .btn-black:active{ opacity:.85; }
+
+    .btn-line{
+      appearance:none; border:1px solid #000; background:#fff; color:#000;
+      padding:12px 16px; border-radius:0; font-weight:700; line-height:1; cursor:pointer;
+    }
+    .btn-line:hover{ background:#f5f5f5; }
+
+    .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+
+    /* Messages */
+    .flash{ padding:.6rem 1rem; border:1px solid #000; border-radius:0; }
+    .flash.err{ background:#ffe7e7; }
+    .flash.ok{ background:#e7ffe7; }
+  </style>
+{% endblock %}
 
 {% block body %}
-<div style="max-width: 1100px; margin: 2rem auto; display:grid; gap:20px;">
+<div class="invoice-wrap">
 
   {# ====== MESSAGES ====== #}
   {% for m in app.flashes('error') %}
-    <div style="background:#8b1d1d;color:#fff;padding:.6rem 1rem;border-radius:10px;">{{ m }}</div>
+    <div class="flash err">{{ m }}</div>
   {% endfor %}
   {% for m in app.flashes('success') %}
-    <div style="background:#155e2b;color:#fff;padding:.6rem 1rem;border-radius:10px;">{{ m }}</div>
+    <div class="flash ok">{{ m }}</div>
   {% endfor %}
 
-  {# ====== HAUT : Infos client & paiement ====== #}
-  <section style="border:1px solid var(--border); border-radius:12px; padding:22px; background:rgba(255,255,255,0.02);">
-    <h1 style="margin:0 0 14px 0;">Créer une facture</h1>
+  {# ====== HAUT : Infos client & paiement (pas de contour) ====== #}
+  <section class="block">
+    <h1>Créer une facture</h1>
 
-    {# On sépare le formulaire principal en bas, donc on relie ici via form="invoice-form" #}
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-      <div style="max-width: 420px;">
-        <label style="display:block;margin-bottom:6px;">Prénom</label>
-        <input name="first_name" form="invoice-form" required
-               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+    <div class="grid-2">
+      <div class="w-m">
+        <label>Prénom</label>
+        <input name="first_name" form="invoice-form" required class="field" />
       </div>
-      <div style="max-width: 420px;">
-        <label style="display:block;margin-bottom:6px;">Nom</label>
-        <input name="last_name" form="invoice-form" required
-               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      <div class="w-m">
+        <label>Nom</label>
+        <input name="last_name" form="invoice-form" required class="field" />
       </div>
     </div>
 
-    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:16px; margin-top:14px;">
-      <div style="max-width: 260px;">
-        <label style="display:block;margin-bottom:6px;">Date de naissance</label>
+    <div class="grid-12-24">
+      <div class="w-s">
+        <label>Date de naissance</label>
         <input type="text" name="dob" form="invoice-form" required placeholder="JJ/MM/AAAA"
-               pattern="^\\d{1,2}[\\/\\-\\.\\s]\\d{1,2}[\\/\\-\\.\\s]\\d{4}$"
-               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+               pattern="^\\d{1,2}[\\/\\-\\.\\s]\\d{1,2}[\\/\\-\\.\\s]\\d{4}$" class="field" />
       </div>
-      <div style="max-width: 660px;">
-        <label style="display:block;margin-bottom:6px;">Adresse</label>
-        <input name="address" form="invoice-form" required placeholder="Rue, CP, Ville, Pays"
-               style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);" />
+      <div class="w-l">
+        <label>Adresse</label>
+        <input name="address" form="invoice-form" required placeholder="Rue, CP, Ville, Pays" class="field" />
       </div>
     </div>
 
-    <div style="margin-top:14px; max-width: 260px;">
-      <label style="display:block;margin-bottom:6px;">Moyen de paiement</label>
-      <select name="payment" form="invoice-form"
-              style="width:100%; padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--text);">
+    <div class="w-s">
+      <label>Moyen de paiement</label>
+      <select name="payment" form="invoice-form" class="field">
         <option value="cash">Espèces</option>
         <option value="card">Carte de crédit</option>
         <option value="transfer">Virement</option>
@@ -56,68 +130,8 @@
   </section>
 
   {# ====== BAS : Lignes devises (formulaire principal) ====== #}
-  <form id="invoice-form" method="post" action="{{ path('admin_invoice', {mode: 'admin'}) }}"
-        style="border:1px solid var(--border); border-radius:12px; padding:18px; background:rgba(255,255,255,0.02); display:grid; gap:18px;">
-
-    <h3 style="margin:0;">Lignes devises</h3>
-
-    <style>
-      /* Lignes en colonne + espacements supplémentaires entre groupes */
-      .fx-row{
-        display:flex;
-        flex-direction:column;      /* <-- colonne */
-        gap:12px;                   /* petit gap entre éléments "proches" */
-        padding:16px 0;
-        border-top:1px dashed var(--border);
-      }
-      .fx-first{ border-top:0 }
-
-      /* Espaces supplémentaires demandés entre les 4 grands blocs */
-      .group-cur   { margin-bottom:10px; }  /* après Devise */
-      .group-amt   { margin-bottom:16px; }  /* après Montant Devise */
-      .group-rates { margin-bottom:16px; }  /* après Taux */
-      /* Montant EUR vient en dernier, pas besoin d'espace sous lui */
-
-      .mini-tabs{display:inline-flex; gap:6px; padding:4px; border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,0.04)}
-      .mini-tabs button{
-        border:0; padding:6px 10px; border-radius:999px; background:transparent; color:var(--text); cursor:pointer; font-weight:700;
-      }
-      .mini-tabs button.active{ background:rgba(79,124,255,0.18) }
-
-      .fx-field{
-        width:100%; padding:10px;
-        border:1px solid var(--border); border-radius:10px;
-        background:rgba(255,255,255,0.03); color:var(--text);
-      }
-
-      /* Taux : on garde les deux champs côte à côte, centrés, même si la ligne est en colonne */
-      .rates-pack{
-        display:flex; justify-content:center; gap:28px;
-        padding:6px 0;
-        flex-wrap:wrap;
-      }
-      .rates-pack > div{ width: min(320px, 100%); }
-
-      /* Champs non full width (si tu veux limiter) */
-      .w-s   { width: min(260px, 100%); }
-      .w-m   { width: min(420px, 100%); }
-      .w-l   { width: min(660px, 100%); }
-
-      .fx-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
-
-      /* --- SUPPRIMER LES FLÈCHES des <input type="number"> --- */
-      /* Chrome, Edge, Safari */
-      input[type="number"]::-webkit-outer-spin-button,
-      input[type="number"]::-webkit-inner-spin-button{
-        -webkit-appearance: none;
-        margin: 0;
-      }
-      /* Firefox */
-      input[type="number"]{
-        -moz-appearance: textfield;
-        appearance: textfield;
-      }
-    </style>
+  <form id="invoice-form" method="post" action="{{ path('admin_invoice', {mode: 'admin'}) }}" class="block" style="gap:18px;">
+    <h3>Lignes devises</h3>
 
     <div id="items" style="display:grid; gap:0;">
       <div class="fx-row fx-first row" data-mode="vente">
@@ -130,9 +144,9 @@
         </div>
 
         <!-- (1) Devise -->
-        <div class="w-m group-cur">
-          <label style="display:block;margin-bottom:6px;">Devise</label>
-          <select name="item_currency[]" class="curSel fx-field">
+        <div class="w-m">
+          <label>Devise</label>
+          <select name="item_currency[]" class="curSel field">
             <option value="">Choisir…</option>
             {% for c in currencies %}
               <option value="{{ c.code }}">{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
@@ -141,34 +155,34 @@
         </div>
 
         <!-- (2) Montant devise -->
-        <div class="w-m group-amt">
-          <label style="display:block;margin-bottom:6px;">Montant Devise</label>
-          <input name="item_local[]" class="amtLOC fx-field" type="number" step="0.01" min="0" placeholder="0,00" />
+        <div class="w-m">
+          <label>Montant Devise</label>
+          <input name="item_local[]" class="amtLOC field" type="number" step="0.01" min="0" placeholder="0,00" />
         </div>
 
         <!-- (3) Taux -->
-        <div class="rates-pack group-rates">
+        <div class="rates-pack">
           <div>
-            <label style="display:block;margin-bottom:6px;">Tx EUR→Dev</label>
-            <input name="item_rate_el[]" class="rateEL fx-field" type="number" step="0.0001" min="0" placeholder="1.1000" />
+            <label>Tx EUR→Dev</label>
+            <input name="item_rate_el[]" class="rateEL field" type="number" step="0.0001" min="0" placeholder="1.1000" />
           </div>
           <div>
-            <label style="display:block;margin-bottom:6px;">Tx Dev→EUR</label>
-            <input name="item_rate_le[]" class="rateLE fx-field" type="number" step="0.0001" min="0" placeholder="0.9091" />
+            <label>Tx Dev→EUR</label>
+            <input name="item_rate_le[]" class="rateLE field" type="number" step="0.0001" min="0" placeholder="0.9091" />
           </div>
         </div>
 
         <!-- (4) Montant EUR -->
         <div class="w-m">
-          <label style="display:block;margin-bottom:6px;">Montant EUR</label>
-          <input name="item_eur[]" class="amtEUR fx-field" type="number" step="0.01" min="0" placeholder="0,00" />
+          <label>Montant EUR</label>
+          <input name="item_eur[]" class="amtEUR field" type="number" step="0.01" min="0" placeholder="0,00" />
         </div>
       </div>
     </div>
 
-    <div class="fx-actions">
-      <button type="button" id="add-row" class="btn">Ajouter une devise</button>
-      <button class="btn btn-primary" type="submit">Générer la facture (PDF)</button>
+    <div class="actions">
+      <button type="button" id="add-row" class="btn-line">Ajouter une devise</button>
+      <button class="btn-black" type="submit">Générer la facture (PDF)</button>
     </div>
   </form>
 </div>

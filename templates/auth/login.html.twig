@@ -1,39 +1,84 @@
 {% extends 'base.html.twig' %}
 {% block title %}Connexion{% endblock %}
 
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    /* Police Poppins et texte noir */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    .auth-wrap, .auth-wrap *{ font-family:'Poppins',sans-serif; color:#0b1220; }
+
+    /* Conteneur sans carte ni contour */
+    .auth-wrap{ max-width:420px; margin:40px auto 72px; padding:0 16px; }
+
+    /* Titre */
+    .auth-title{ margin:0 0 14px; font-size:1.3rem; font-weight:700; letter-spacing:.2px; }
+
+    /* Label + champs (angles droits) */
+    .auth-label{ font-weight:600; margin-bottom:6px; display:block; }
+    .auth-field{
+      width:100%;
+      padding:12px 14px;
+      border:1px solid #000;      /* bord noir discret */
+      border-radius:0;            /* angles droits */
+      background:#fff; color:#0b1220;
+      outline:none;
+      transition:border-color .12s, box-shadow .12s;
+    }
+    .auth-field:focus{
+      border-color:#000;
+      box-shadow:0 0 0 2px rgba(0,0,0,.08); /* léger focus */
+    }
+
+    /* Bouton noir, angles droits */
+    .auth-btn{
+      appearance:none; cursor:pointer; width:100%;
+      border:1px solid #000; background:#000; color:#fff;
+      padding:13px 16px; border-radius:0; font-weight:700;
+      transition:opacity .12s ease, transform .04s ease;
+      margin-top:6px;
+    }
+    .auth-btn:hover{ opacity:.92; }
+    .auth-btn:active{ transform:translateY(1px); }
+
+    /* Messages d'erreur */
+    .auth-flash{
+      background:#8b1d1d; color:#fff;
+      padding:.6rem 1rem; border-radius:8px; margin:.5rem 0;
+    }
+
+    /* Lien bas de formulaire */
+    .auth-bottom{ margin-top:10px; color:#6b7280; }
+    .auth-bottom a{
+      color:#0b1220; text-decoration:underline; text-underline-offset:3px; font-weight:600;
+    }
+  </style>
+{% endblock %}
+
 {% block body %}
-<div style="max-width: 420px; margin: 3rem auto;">
-  <div style="text-align:center; margin-bottom: 1rem;">
-    <a href="{{ path('app_exchange', {mode: mode|default('guest')}) }}" aria-label="Accueil">
-      <img src="/Logo/logo.png" alt="Logo" style="height:72px; width:auto;">
-    </a>
-  </div>
+<div class="auth-wrap">
+  <h1 class="auth-title">Connexion</h1>
 
-  <div style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:16px; padding: 18px;">
-    <h1 style="margin:0 0 10px 0; font-size: 1.3rem;">Connexion</h1>
+  {% for m in app.flashes('error') %}
+    <div class="auth-flash">{{ m }}</div>
+  {% endfor %}
 
-    {% for m in app.flashes('error') %}
-      <div style="background:#8b1d1d; color:#fff; padding:.6rem 1rem; border-radius:10px; margin:.5rem 0;">{{ m }}</div>
-    {% endfor %}
-
-    <form method="post" action="{{ path('app_login', {mode: mode|default('guest')}) }}" style="display:grid; gap: 12px;">
-      <div>
-        <label>Email</label>
-        <input type="email" name="email" required autofocus
-               style="width:100%; padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.03); color:var(--text);" />
-      </div>
-      <div>
-        <label>Mot de passe</label>
-        <input type="password" name="password" required
-               style="width:100%; padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,0.03); color:var(--text);" />
-      </div>
-      <button class="btn btn-primary" type="submit">Se connecter</button>
-    </form>
-
-    <div style="margin-top:10px; color:#93a1c6;">
-      Pas de compte ?
-      <a href="{{ path('app_register', {mode: mode|default('guest')}) }}" style="text-decoration:underline;">Créer un compte</a>
+  <form method="post" action="{{ path('app_login', {mode: mode|default('guest')}) }}" style="display:grid; gap: 12px;">
+    <div>
+      <label class="auth-label">Email</label>
+      <input class="auth-field" type="email" name="email" required autofocus />
     </div>
+    <div>
+      <label class="auth-label">Mot de passe</label>
+      <input class="auth-field" type="password" name="password" required />
+    </div>
+    <button class="auth-btn" type="submit">Se connecter</button>
+  </form>
+
+  <div class="auth-bottom">
+    Pas de compte ?
+    <a href="{{ path('app_register', {mode: mode|default('guest')}) }}">Créer un compte</a>
   </div>
 </div>
 {% endblock %}
+

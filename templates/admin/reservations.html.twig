@@ -1,33 +1,87 @@
 {% extends 'base.html.twig' %}
-{% block title %}Admin - Réservations{% endblock %}
+{% block title %}Admin — Réservations{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    /* ===== Look & feel aligné aux formulaires (Poppins, noir, bords droits) ===== */
+    .admin-wrap, .admin-wrap *{ font-family:'Poppins',sans-serif; color:#000; }
+
+    .admin-wrap{ max-width:1100px; margin:40px auto; padding:0 20px; }
+    .admin-head{ display:flex; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap; }
+    .admin-head h1{ margin:0; font-size:26px; font-weight:700; letter-spacing:.2px; }
+
+    /* Barre de recherche — sobre (bords droits, noir) */
+    .search-wrap{ flex:1; display:flex; justify-content:flex-end; min-width:340px; }
+    .search{
+      width:100%; max-width:620px; display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border:1px solid #000; background:#fff; border-radius:0;
+    }
+    .search svg{ flex:0 0 auto; opacity:.85 }
+    .search input{
+      flex:1; min-width:140px; border:none; outline:none; background:transparent;
+      font-size:14px; font-weight:500; padding:2px 0;
+    }
+    .search .count{
+      display:none; padding:2px 8px; font-size:12px; line-height:1;
+      border:1px solid #000; background:#fff;
+    }
+    .search .clear{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:34px; height:34px; border:1px solid #000; background:#000; color:#fff;
+      cursor:pointer; border-radius:0;
+    }
+
+    /* Table */
+    .table-wrap{ margin-top:18px; overflow-x:auto; }
+    table.admin{
+      width:100%; border-collapse:collapse; border:1px solid #000;
+    }
+    .admin thead th{
+      text-align:left; padding:12px; border-bottom:1px solid #000; font-size:13px; font-weight:600;
+    }
+    .admin tbody td{
+      padding:12px; border-top:1px solid #000; font-size:13px; vertical-align:top;
+    }
+
+    /* Boutons (noirs, bords droits) */
+    .btn-black{
+      appearance:none; border:1px solid #000; background:#000; color:#fff;
+      padding:10px 14px; border-radius:0; font-weight:600; line-height:1; cursor:pointer;
+    }
+    .btn-black:hover{ opacity:.9; }
+    .btn-black:active{ opacity:.85; }
+
+    /* Badges statut (sobres) */
+    .st-ok{ color:#166534; }      /* vert foncé */
+    .st-warn{ color:#92400e; }    /* ambre foncé */
+    .st-exp{ color:#991b1b; }     /* rouge foncé */
+
+    /* Messages flash */
+    .flash{ padding:.6rem 1rem; border:1px solid #000; border-radius:0; }
+    .flash.ok{ background:#e7ffe7; }
+    .flash.err{ background:#ffe7e7; }
+
+    /* Petits ajustements */
+    .list-plain{ margin:0; padding-left:16px; }
+  </style>
+{% endblock %}
 
 {% block body %}
 {% set tz = 'Europe/Paris' %}
 {% set nowLocal = now ?? date(null, tz) %}
 
-<div style="max-width: 1100px; margin: 2rem auto;">
-  <div style="display:flex;align-items:center;gap:1rem;justify-content:space-between;flex-wrap:wrap;">
-    <h1 style="margin:0;">Réservations</h1>
+<div class="admin-wrap">
+  <div class="admin-head">
+    <h1>Réservations</h1>
 
-    {# ========= SEARCH BAR COLORFUL ========= #}
-    <div style="flex:1;display:flex;justify-content:flex-end;min-width:340px;">
-      <div id="searchBar"
-           style="
-             position:relative;
-             display:flex; align-items:center; gap:.6rem;
-             width:100%; max-width:620px;
-             padding:.65rem .9rem;
-             border-radius:14px;
-             background:linear-gradient(135deg,#3b82f6,#8b5cf6,#06b6d4);
-             box-shadow:0 6px 20px rgba(0,0,0,.15);
-             color:#fff;
-             transition: box-shadow .25s ease, transform .15s ease;
-           ">
-        <!-- Loupe -->
+    <!-- ===== Barre de recherche ===== -->
+    <div class="search-wrap">
+      <div class="search" id="searchBar">
+        <!-- Icône loupe -->
         <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             style="opacity:.9;flex:0 0 auto;">
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="7"></circle>
           <path d="M21 21l-3.2-3.2"></path>
         </svg>
@@ -35,56 +89,37 @@
         <!-- Input -->
         <input id="searchInput" type="search" inputmode="search" autocomplete="off" spellcheck="false"
                placeholder="Rechercher une référence… (ex. CMD-12345)"
-               aria-label="Rechercher une réservation par numéro de référence"
-               style="flex:1;min-width:140px;border:none;outline:none;background:transparent;
-                      font-size:14px;color:#fff;font-weight:500;" />
+               aria-label="Rechercher une réservation par numéro de référence" />
 
         <!-- Compteur -->
-        <span id="searchCount" aria-live="polite"
-              style="display:none;padding:.25rem .55rem;font-size:12px;line-height:1;
-                     background:rgba(255,255,255,.25); border-radius:999px;">
-        </span>
+        <span id="searchCount" class="count" aria-live="polite"></span>
 
         <!-- Effacer -->
-        <button id="clearSearchBtn" type="button" title="Effacer"
-                aria-label="Effacer la recherche"
-                style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
-                       border:none;cursor:pointer;background:rgba(255,255,255,.25);border-radius:8px;color:#fff;
-                       transition:background .2s ease;">
-          ✕
-        </button>
-
-        <!-- Raccourci -->
-        <kbd title="Raccourci: /"
-             style="user-select:none;margin-left:.15rem;padding:.15rem .45rem;
-                    border-radius:6px;font-size:11px;background:rgba(255,255,255,.25);color:#fff;">
-          /
-        </kbd>
+        <button id="clearSearchBtn" type="button" class="clear" title="Effacer" aria-label="Effacer la recherche">✕</button>
       </div>
     </div>
-    {# ====================================== #}
   </div>
 
   {# Flash messages #}
   {% for m in app.flashes('success') %}
-    <div style="background:#093;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>
+    <div class="flash ok" style="margin:.75rem 0;">{{ m }}</div>
   {% endfor %}
   {% for m in app.flashes('error') %}
-    <div style="background:#900;color:#fff;padding:.6rem 1rem;border-radius:10px;margin:.75rem 0;">{{ m }}</div>
+    <div class="flash err" style="margin:.75rem 0;">{{ m }}</div>
   {% endfor %}
 
-  <div style="margin-top:1rem;">
-    <table id="reservationsTable" style="width:100%;border-collapse:collapse;border:1px solid var(--border,#e2e8f0);">
+  <div class="table-wrap">
+    <table id="reservationsTable" class="admin">
       <thead>
         <tr>
-          <th style="padding:10px;text-align:left;">Cmd</th>
-          <th style="padding:10px;text-align:left;">Client</th>
-          <th style="padding:10px;text-align:left;">Opération</th>
-          <th style="padding:10px;text-align:left;">Créée</th>
-          <th style="padding:10px;text-align:left;">Échéance</th>
-          <th style="padding:10px;text-align:left;">Statut</th>
-          <th style="padding:10px;text-align:left;">Détail</th>
-          <th style="padding:10px;text-align:left;">Action</th>
+          <th>Cmd</th>
+          <th>Client</th>
+          <th>Opération</th>
+          <th>Créée</th>
+          <th>Échéance</th>
+          <th>Statut</th>
+          <th>Détail</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -93,49 +128,52 @@
           {% set nowU = nowLocal|date('U', tz) %}
           {% set expired = (r.status == 'pending' and deadlineU <= nowU) %}
 
-          <tr data-order="{{ r.orderCode|lower }}" style="border-top:1px solid var(--border,#e2e8f0);">
-            <td style="padding:10px;font-weight:600;">{{ r.orderCode }}</td>
-            <td style="padding:10px;">{{ r.firstName }} {{ r.lastName }}</td>
-            <td style="padding:10px;">{% if r.operation == 'buy' %}Achat{% else %}Vente{% endif %}</td>
-            <td style="padding:10px;">{{ r.createdAt|date('Y-m-d H:i', tz) }}</td>
-            <td style="padding:10px;">{{ r.pickupDeadline|date('Y-m-d H:i', tz) }}</td>
-            <td style="padding:10px;">
+          <tr data-order="{{ r.orderCode|lower }}">
+            <td style="font-weight:600;">{{ r.orderCode }}</td>
+            <td>{{ r.firstName }} {{ r.lastName }}</td>
+            <td>{% if r.operation == 'buy' %}Achat{% else %}Vente{% endif %}</td>
+            <td>{{ r.createdAt|date('Y-m-d H:i', tz) }}</td>
+            <td>{{ r.pickupDeadline|date('Y-m-d H:i', tz) }}</td>
+            <td>
               {% if r.status == 'completed' %}
-                <span style="color:#16a34a;">Transaction passée</span>
+                <span class="st-ok">Transaction passée</span>
               {% elseif expired %}
-                <span style="color:#ef4444;">Expirée</span>
+                <span class="st-exp">Expirée</span>
               {% else %}
                 {% set seconds = (deadlineU - nowU) %}
                 {% set totalMins = (seconds / 60)|round(0, 'floor') %}
                 {% set hours = (totalMins // 60) %}
                 {% set mins  = (totalMins % 60) %}
-                <span style="color:#f59e0b;">
+                <span class="st-warn">
                   {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}min restantes
                 </span>
               {% endif %}
             </td>
-            <td style="padding:10px;">
-              <ul style="margin:0;padding-left:16px;">
+            <td>
+              <ul class="list-plain">
                 {% for it in r.items %}
-                  <li>{{ it.currency }} — EUR: {{ it.amountEuro ?? '-' }}, Local: {{ it.amountLocal ?? '-' }} (B: {{ it.rateBuy|number_format(4,'.',' ') }}, S: {{ it.rateSell|number_format(4,'.',' ') }})</li>
+                  <li>
+                    {{ it.currency }} — EUR: {{ it.amountEuro ?? '-' }}, Local: {{ it.amountLocal ?? '-' }}
+                    (B: {{ it.rateBuy|number_format(4,'.',' ') }}, S: {{ it.rateSell|number_format(4,'.',' ') }})
+                  </li>
                 {% endfor %}
               </ul>
             </td>
-            <td style="padding:10px;">
+            <td>
               {% if r.status != 'completed' %}
-              <form method="post" action="{{ path('admin_reservation_confirm', {id: r.id, mode: 'admin'}) }}">
-                <button class="btn btn-primary" type="submit">Confirmer retrait</button>
-              </form>
+                <form method="post" action="{{ path('admin_reservation_confirm', {id: r.id, mode: 'admin'}) }}">
+                  <button class="btn-black" type="submit">Confirmer retrait</button>
+                </form>
               {% else %}
                 —
               {% endif %}
             </td>
           </tr>
         {% else %}
-          <tr class="row-empty"><td colspan="8" style="padding:10px;color:#93a1c6;">Aucune réservation.</td></tr>
+          <tr class="row-empty"><td colspan="8" style="color:#6b7280;">Aucune réservation.</td></tr>
         {% endfor %}
         <tr id="noMatchRow" style="display:none;">
-          <td colspan="8" style="padding:10px;color:#93a1c6;">Aucune réservation ne correspond à cette référence.</td>
+          <td colspan="8" style="color:#6b7280;">Aucune réservation ne correspond à cette référence.</td>
         </tr>
       </tbody>
     </table>
@@ -154,12 +192,47 @@
         var countBadge=document.getElementById('searchCount');
         var tbody=document.querySelector('#reservationsTable tbody');
         var noMatchRow=document.getElementById('noMatchRow');
-        function getRows(){return Array.prototype.slice.call(tbody.querySelectorAll('tr')).filter(function(tr){return !tr.classList.contains('row-empty')&&tr.id!=='noMatchRow';});}
-        function updateCount(visible,total,querying){if(!countBadge)return;if(querying&&total>0){countBadge.style.display='';countBadge.textContent=visible+'/'+total;}else{countBadge.style.display='none';}}
-        function filterRows(query){var q=(query||'').toLowerCase();var rows=getRows();var visible=0;rows.forEach(function(tr){var order=(tr.getAttribute('data-order')||'').toLowerCase();var match=q===''||order.indexOf(q)!==-1;tr.style.display=match?'':'none';if(match)visible++;});if(noMatchRow){noMatchRow.style.display=(visible===0&&rows.length>0&&q!=='')?'':'none';}updateCount(visible,rows.length,q!=='');}
-        input.addEventListener('input',function(e){filterRows(e.target.value);});
-        clearBtn.addEventListener('click',function(){input.value='';filterRows('');input.focus();});
-        document.addEventListener('keydown',function(e){var tag=(document.activeElement&&document.activeElement.tagName||'').toLowerCase();if(e.key==='/'&&tag!=='input'&&tag!=='textarea'){e.preventDefault();input.focus();}if(e.key==='Escape'){if(document.activeElement===input&&input.value){input.value='';filterRows('');}else if(document.activeElement===input){input.blur();}}});
+
+        function getRows(){
+          return Array.prototype.slice.call(tbody.querySelectorAll('tr'))
+            .filter(function(tr){return !tr.classList.contains('row-empty') && tr.id!=='noMatchRow';});
+        }
+        function updateCount(visible,total,querying){
+          if(!countBadge) return;
+          if(querying && total>0){
+            countBadge.style.display='';
+            countBadge.textContent=visible+'/'+total;
+          }else{
+            countBadge.style.display='none';
+          }
+        }
+        function filterRows(query){
+          var q=(query||'').toLowerCase();
+          var rows=getRows(); var visible=0;
+          rows.forEach(function(tr){
+            var order=(tr.getAttribute('data-order')||'').toLowerCase();
+            var match=(q==='') || order.indexOf(q)!==-1;
+            tr.style.display=match?'':'none';
+            if(match) visible++;
+          });
+          if(noMatchRow){
+            noMatchRow.style.display=(visible===0 && rows.length>0 && q!=='')?'':'none';
+          }
+          updateCount(visible,rows.length,q!=='');
+        }
+
+        input.addEventListener('input',function(e){ filterRows(e.target.value); });
+        clearBtn.addEventListener('click',function(){ input.value=''; filterRows(''); input.focus(); });
+
+        document.addEventListener('keydown',function(e){
+          var tag=(document.activeElement&&document.activeElement.tagName||'').toLowerCase();
+          if(e.key==='/' && tag!=='input' && tag!=='textarea'){ e.preventDefault(); input.focus(); }
+          if(e.key==='Escape'){
+            if(document.activeElement===input && input.value){ input.value=''; filterRows(''); }
+            else if(document.activeElement===input){ input.blur(); }
+          }
+        });
+
         filterRows('');
       });
     })();

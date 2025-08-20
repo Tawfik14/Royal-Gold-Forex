@@ -1,249 +1,141 @@
 {% extends 'base.html.twig' %}
+{% block title %}Devises — Taux Achat & Vente{% endblock %}
 
-{% block title %}Exchange Taux de change et Convertisseur{% endblock %}
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .wrap{max-width:1280px;margin:0 auto;padding:32px 20px;text-align:left}
+    h1{margin:0 0 10px;font-weight:700;font-size:22px;text-align:left}
+    .muted{color:var(--muted);font-size:14px;text-align:left}
+
+    /* Carousel */
+    .carousel{
+      width:min(92vw,1080px);
+      margin:18px auto 6px;
+      position:relative; border-radius:0; overflow:hidden;
+      box-shadow:0 14px 40px rgba(15,23,42,.12);
+      background:#0b1220; aspect-ratio:16/9; isolation:isolate;
+    }
+    .carousel-track{display:flex;height:100%;width:200%;transform:translateX(0);transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+    .slide{flex:0 0 100%;height:100%;position:relative}
+    .slide img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05)}
+    .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22) 0%,rgba(0,0,0,.55) 100%)}
+    .caption{position:absolute;left:22px;right:22px;bottom:18px;color:#fff;text-align:left}
+    .caption h3{margin:0;font-size:20px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+    .caption p{margin:2px 0 0;font-size:13px;opacity:.9}
+    .bars{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px}
+    .bar{width:72px;height:3px;background:rgba(255,255,255,.35);cursor:pointer;position:relative;overflow:hidden}
+    .bar .fill{position:absolute;inset:0 auto 0 0;width:0%;background:#fff}
+    .bar.active .fill{animation:barfill 5s linear forwards}
+    @keyframes barfill {from{width:0%} to{width:100%}}
+
+    /* Grid */
+    .grid{display:grid;gap:36px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+    a.row{border:none;border-radius:14px;background:#fff;padding:20px;display:flex;align-items:center;gap:18px;box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .15s ease; text-decoration:none; color:inherit}
+    a.row:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.08)}
+    .flag{font-size:42px;line-height:1}
+    .txt{flex:1;min-width:0}
+    .country{font-weight:700;font-size:14px}
+    .lines{margin-top:4px;color:var(--muted);font-size:13px;line-height:1.35}
+    .code{margin-left:auto;font-weight:700;font-size:14px;color:#101828}
+  </style>
+{% endblock %}
 
 {% block body %}
-<div id="reservation" class="container" style="max-width: 1100px; margin: 2rem auto; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;">
-  <h1 style="margin: 0 0 1.25rem 0;">Exchange Taux</h1>
-  <p style="color:#93a1c6; margin-bottom: 1.25rem;">Les cours Achat/Vente incluent une marge. Choisissez une devise pour chaque calculatrice, puis renseignez EUR ou la devise.</p>
-
-  {% for message in app.flashes('error') %}
-    <div style="background:rgba(255,0,0,0.08);color:#ffb4b4;padding:0.9rem 1.1rem;border:1px solid rgba(255,0,0,0.25);border-radius:12px;margin-bottom:1.25rem;">{{ message }}</div>
-  {% endfor %}
-
-  <div style="display:grid; grid-template-columns: 1fr; gap: 32px;">
-    {# ===== TABLEAU DES TAUX ===== #}
-    <section>
-      <div style="background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius: 16px; overflow: hidden;">
-        <table style="width:100%; border-collapse: collapse; table-layout: fixed;">
-          <colgroup>
-            <col style="width:22%;">
-            <col style="width:20%;">
-            <col style="width:8%;">
-            <col style="width:13%;">
-            <col style="width:13%;">
-            <col style="width:12%;">
-            <col style="width:12%;">
-          </colgroup>
-          <thead>
-            <tr style="text-align:left; border-bottom:1px solid var(--border);">
-              <th style="padding:20px;">Pays</th>
-              <th style="padding:20px;">Devise</th>
-              <th style="padding:20px;">Code</th>
-              <th style="padding:20px;">EUR→Local Achat</th>
-              <th style="padding:20px;">EUR→Local Vente</th>
-              <th style="padding:20px;">Local→EUR Achat</th>
-              <th style="padding:20px;">Local→EUR Vente</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in currencies %}
-              {% set code = c.code %}
-              {% set r = rates[code] ?? null %}
-              <tr style="border-top:1px solid var(--border);">
-                <td style="padding:20px;">{{ c.flag }} {{ c.country }}</td>
-                <td style="padding:20px;">{{ c.currency }}</td>
-                <td style="padding:20px; font-weight:600;">{{ code }}</td>
-                <td style="padding:20px;">{% if r and r.buy  %}{{ r.buy|number_format(4, '.', ' ')  }}{% else %}-{% endif %}</td>
-                <td style="padding:20px;">{% if r and r.sell %}{{ r.sell|number_format(4, '.', ' ') }}{% else %}-{% endif %}</td>
-                <td style="padding:20px;">{% if r and r.buy and r.buy > 0 %}{{ (1 / r.buy)|number_format(4, '.', ' ') }}{% else %}-{% endif %}</td>
-                <td style="padding:20px;">{% if r and r.sell and r.sell > 0 %}{{ (1 / r.sell)|number_format(4, '.', ' ') }}{% else %}-{% endif %}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    {# ===== CALCULATEURS ===== #}
-    <section class="calc-wrap">
-      <style>
-        .calc-wrap{ --card-bg: rgba(255,255,255,0.04); --border: rgba(148,163,184,0.25); --text:#e5ecff; --muted:#93a1c6; --grad1: linear-gradient(135deg,#4f7cff,#7f56d9 60%,#22d3ee); --grad2: linear-gradient(135deg,#22d3ee,#4f7cff 60%,#7f56d9) }
-        .calc-wrap .card{ background: var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:24px; backdrop-filter: blur(6px) }
-
-        .calc-wrap .field{
-          padding:12px 14px; border:1px solid var(--border); border-radius:12px;
-          background:rgba(255,255,255,0.045); color:var(--text); width:100%;
-        }
-        .calc-wrap .field:focus{ outline:none; } /* aucun changement focus */
-
-        .calc-wrap label{ font-weight:600; color: var(--text) }
-        .calc-wrap input[type=number]::-webkit-outer-spin-button,
-        .calc-wrap input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
-        .calc-wrap input[type=number]{ -moz-appearance:textfield; appearance:textfield }
-
-        /* === Boutons sans "lumière" ni ombre === */
-        .calc-wrap .btn{
-          appearance:none; border:0; padding:12px 16px; border-radius:12px;
-          color:#fff; font-weight:700; cursor:pointer; width:100%;
-          background-image: var(--grad1);
-          transition: transform .08s;
-          box-shadow: none;
-          filter: none;
-        }
-        .calc-wrap .btn:hover{ filter: none; box-shadow: none; }
-        .calc-wrap .btn:active{ transform: translateY(1px) scale(.997) }
-
-        .calc-wrap .chip{ margin-top:12px; border:1px solid rgba(79,124,255,0.35); background: rgba(79,124,255,0.08); padding:12px; border-radius:12px; font-weight:600 }
-        .calc-wrap .chip.alt{ border-color: rgba(127,86,217,0.35); background: rgba(127,86,217,0.08) }
-
-        .calc-wrap .grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px }
-        @media(max-width:900px){ .calc-wrap .grid{ grid-template-columns:1fr } }
-
-        .calc-wrap .calc-header{
-          display:flex; align-items:center; gap:10px; margin:0 0 12px 0;
-          font-weight:800; letter-spacing:.2px; background-image: var(--grad2);
-          -webkit-background-clip:text; background-clip:text; color: transparent;
-        }
-        .calc-wrap .badge{ font-size:.8rem; font-weight:700; padding:4px 10px; border-radius:999px; color:white; background-image: var(--grad2) }
-      </style>
-
-      <div class="grid">
-        <!-- BUY BOX -->
-        <div class="card">
-          <h2 class="calc-header">Exchange vous achète des devises <span class="badge">BUY</span></h2>
-          <form id="buy-form" style="display:grid; gap: 12px;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:center;">
-              <label>Devise</label>
-              <select name="buy_currency" class="field">
-                {% for c in currencies %}
-                  <option value="{{ c.code }}" {% if c.code == buySelected %}selected{% endif %}>{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
-                {% endfor %}
-              </select>
-              <label>Euros (EUR)</label>
-              <input class="field" type="number" name="buy_eur" step="0.01" min="0" />
-              <label>Montant en <span id="buy-currency-code">{{ buySelected }}</span></label>
-              <input class="field" type="number" name="buy_local" step="0.01" min="0" />
-            </div>
-            <button type="submit" class="btn">Calculer</button>
-          </form>
-          <div id="buy-result" class="chip alt" style="display:none;"></div>
-        </div>
-
-        <!-- SELL BOX -->
-        <div class="card">
-          <h2 class="calc-header">Exchange vous vend des devises <span class="badge">SELL</span></h2>
-          <form id="sell-form" style="display:grid; gap: 12px;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:center;">
-              <label>Devise</label>
-              <select name="sell_currency" class="field">
-                {% for c in currencies %}
-                  <option value="{{ c.code }}" {% if c.code == sellSelected %}selected{% endif %}>{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
-                {% endfor %}
-              </select>
-              <label>Euros (EUR)</label>
-              <input class="field" type="number" name="sell_eur" step="0.01" min="0" />
-              <label>Montant en <span id="sell-currency-code">{{ sellSelected }}</span></label>
-              <input class="field" type="number" name="sell_local" step="0.01" min="0" />
-            </div>
-            <button type="submit" class="btn">Calculer</button>
-          </form>
-          <div id="sell-result" class="chip alt" style="display:none;"></div>
+  <!-- Carousel -->
+  <div class="carousel" id="heroCarousel" aria-label="Galerie">
+    <div class="carousel-track">
+      <div class="slide">
+        <img src="/images/carousel/slide-1.jpg" alt="Notre bureau de change — accueil">
+        <div class="overlay"></div>
+        <div class="caption">
+          <h3>Change rapide & transparent</h3>
+          <p>Sans frais cachés — service en quelques minutes.</p>
         </div>
       </div>
-    </section>
+      <div class="slide">
+        <img src="/images/carousel/slide-2.jpg" alt="Taux du jour affichés en vitrine">
+        <div class="overlay"></div>
+        <div class="caption">
+          <h3>Taux achat & vente compétitifs</h3>
+          <p>Comparez en un coup d’œil et calculez instantanément.</p>
+        </div>
+      </div>
+    </div>
+    <div class="bars">
+      <button class="bar active" type="button" aria-label="Aller à la diapo 1"><span class="fill"></span></button>
+      <button class="bar" type="button" aria-label="Aller à la diapo 2"><span class="fill"></span></button>
+    </div>
   </div>
-</div>
+
+  <div class="wrap">
+    <h1>Devises</h1>
+    <p class="muted">Cliquez sur une devise pour ouvrir le convertisseur sur une page dédiée.</p>
+
+    <div class="grid">
+      {% for c in currencies %}
+        {% set code = c.code %}
+        {% set r = rates[code] ?? null %}
+        {% set sell = r and r.sell ? r.sell : null %}
+        {% set invBuy = (r and r.buy and r.buy > 0) ? (1 / r.buy) : null %}
+        {% set tiny = invBuy is not null and invBuy < 0.02 %}
+
+        <a class="row"
+           href="{{ path('app_converter', { code: code }) }}"
+           aria-label="Ouvrir le convertisseur pour {{ c.country }} ({{ code }})">
+          <span class="flag">{{ c.flag }}</span>
+          <div class="txt">
+            <div class="country">{{ c.country }}</div>
+            <div class="lines">
+              {% if sell %}1 € = {{ sell|number_format(4, '.', ' ') }} {{ code }}{% else %}—{% endif %}<br>
+              {% if invBuy %}
+                {% if tiny %}
+                  100 {{ code }} = {{ (invBuy*100)|number_format(4, '.', ' ') }} €
+                {% else %}
+                  1 {{ code }} = {{ invBuy|number_format(4, '.', ' ') }} €
+                {% endif %}
+              {% else %}—{% endif %}
+            </div>
+          </div>
+          <div class="code">{{ code }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
 {% endblock %}
 
 {% block javascripts %}
-{{ parent() }}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const RATES = {{ rates|json_encode|raw }};
-  const fmt2 = new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  {{ parent() }}
+  <script>
+  (function(){
+    const root=document.getElementById('heroCarousel'); if(!root) return;
+    const track=root.querySelector('.carousel-track');
+    const slides=Array.from(root.querySelectorAll('.slide'));
+    const bars=Array.from(root.querySelectorAll('.bar'));
+    let idx=0,timer; const DURATION=5000;
 
-  const buyForm=document.getElementById('buy-form');
-  const sellForm=document.getElementById('sell-form');
-  const buySel=buyForm.querySelector('select[name="buy_currency"]');
-  const sellSel=sellForm.querySelector('select[name="sell_currency"]');
-  const buyEur=buyForm.querySelector('input[name="buy_eur"]');
-  const buyLoc=buyForm.querySelector('input[name="buy_local"]');
-  const sellEur=sellForm.querySelector('input[name="sell_eur"]');
-  const sellLoc=sellForm.querySelector('input[name="sell_local"]');
-  const buyRes=document.getElementById('buy-result');
-  const sellRes=document.getElementById('sell-result');
-  const buyCode=document.getElementById('buy-currency-code');
-  const sellCode=document.getElementById('sell-currency-code');
-
-  function getRate(c){return RATES?.[c]||null;}
-  function show(el,html){el.innerHTML=html;el.style.display='block';}
-  function hide(el){el.style.display='none';}
-
-  // --- Réinitialisation champs & résultats ---
-  function resetBuy(){ buyEur.value=''; buyLoc.value=''; hide(buyRes); }
-  function resetSell(){ sellEur.value=''; sellLoc.value=''; hide(sellRes); }
-
-  // --- On mémorise quel champ a été saisi par l'utilisateur (source) ---
-  let buyPrimary = null;  // 'eur' | 'loc'
-  let sellPrimary = null; // 'eur' | 'loc'
-
-  // Synchroniser la devise entre BUY et SELL, et réinitialiser
-  buySel.addEventListener('change',()=>{
-    sellSel.value=buySel.value;
-    buyCode.textContent=buySel.value;
-    sellCode.textContent=buySel.value;
-    buyPrimary = null; sellPrimary = null;
-    resetBuy(); resetSell();
-  });
-  sellSel.addEventListener('change',()=>{
-    buySel.value=sellSel.value;
-    buyCode.textContent=sellSel.value;
-    sellCode.textContent=sellSel.value;
-    buyPrimary = null; sellPrimary = null;
-    resetBuy(); resetSell();
-  });
-
-  // Quand on saisit dans un champ, l'autre se vide + on cache le résultat
-  buyEur.addEventListener('input',()=>{ buyPrimary='eur'; buyLoc.value=''; hide(buyRes); });
-  buyLoc.addEventListener('input',()=>{ buyPrimary='loc'; buyEur.value=''; hide(buyRes); });
-  sellEur.addEventListener('input',()=>{ sellPrimary='eur'; sellLoc.value=''; hide(sellRes); });
-  sellLoc.addEventListener('input',()=>{ sellPrimary='loc'; sellEur.value=''; hide(sellRes); });
-
-  // --- Calculs BUY ---
-  buyForm.addEventListener('submit',e=>{
-    e.preventDefault();
-    const c=buySel.value,r=getRate(c); if(!r) return;
-
-    const eur=parseFloat(buyEur.value);
-    const loc=parseFloat(buyLoc.value);
-
-    // Saisie en EUR (source) -> EUR à gauche, devise à droite
-    if(buyPrimary==='eur' && !isNaN(eur)){
-      const L=eur*r.buy;
-      buyLoc.value=L.toFixed(2);
-      show(buyRes, `<strong>${fmt2.format(eur)} EUR</strong> ≈ <strong>${fmt2.format(L)} ${c}</strong> (BUY)`);
+    function setActiveBar(i){
+      bars.forEach((b,k)=>{
+        b.classList.toggle('active', k===i);
+        const fill=b.querySelector('.fill');
+        fill.style.animation='none'; void fill.offsetHeight;
+        if(k===i) fill.style.animation='';
+      });
     }
-    // Saisie en devise locale (source) -> devise à gauche, EUR à droite
-    else if(buyPrimary==='loc' && !isNaN(loc)){
-      const E=loc/r.buy;
-      buyEur.value=E.toFixed(2);
-      show(buyRes, `<strong>${fmt2.format(loc)} ${c}</strong> ≈ <strong>${fmt2.format(E)} EUR</strong> (BUY)`);
-    }
-  });
+    function go(i){ idx=(i+slides.length)%slides.length; track.style.transform=`translateX(-${idx*100}%)`; setActiveBar(idx); }
+    function autoplay(){ stop(); timer=setInterval(()=>go(idx+1), DURATION); }
+    function stop(){ if(timer) clearInterval(timer); }
 
-  // --- Calculs SELL ---
-  sellForm.addEventListener('submit',e=>{
-    e.preventDefault();
-    const c=sellSel.value,r=getRate(c); if(!r) return;
+    bars.forEach((b,k)=>b.addEventListener('click',()=>{ go(k); autoplay(); }));
+    root.addEventListener('mouseenter', stop); root.addEventListener('mouseleave', autoplay);
 
-    const eur=parseFloat(sellEur.value);
-    const loc=parseFloat(sellLoc.value);
+    let startX=0,delta=0;
+    root.addEventListener('touchstart',(e)=>{ startX=e.touches[0].clientX; stop(); },{passive:true});
+    root.addEventListener('touchmove',(e)=>{ delta=e.touches[0].clientX-startX; },{passive:true});
+    root.addEventListener('touchend',()=>{ if(Math.abs(delta)>40){ delta<0?go(idx+1):go(idx-1); } delta=0; autoplay(); });
 
-    // Saisie en devise locale (source) -> devise à gauche, EUR à droite
-    if(sellPrimary==='loc' && !isNaN(loc)){
-      const E=loc/r.sell;
-      sellEur.value=E.toFixed(2);
-      show(sellRes, `<strong>${fmt2.format(loc)} ${c}</strong> ≈ <strong>${fmt2.format(E)} EUR</strong> (SELL)`);
-    }
-    // Saisie en EUR (source) -> EUR à gauche, devise à droite
-    else if(sellPrimary==='eur' && !isNaN(eur)){
-      const L=eur*r.sell;
-      sellLoc.value=L.toFixed(2);
-      show(sellRes, `<strong>${fmt2.format(eur)} EUR</strong> ≈ <strong>${fmt2.format(L)} ${c}</strong> (SELL)`);
-    }
-  });
-});
-</script>
+    go(0); window.addEventListener('pageshow', autoplay, {once:true});
+  })();
+  </script>
 {% endblock %}
 
