@@ -1,4 +1,4 @@
-# Royal Gold Forex - Bureau de change (Symfony)
+# Royal Gold Forex - Bureau de change 
 
 Application web (Symfony) pour un bureau de change : consultation des devises, conversion, reservations, contact, et espace admin (cours, ecran public, factures PDF, messages, reservations).
 
@@ -216,7 +216,8 @@ Journaliser les actions importantes.
 
 ## Contact
 
-Projet realise dans un cadre etudiant. 
+Tawfik MOUHAMADIMAME : @Tawfik14
+Projet réalisés par un étudiants en ING 1 MF GM3 
 
 
 
