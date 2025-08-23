@@ -1,7 +1,254 @@
+# Royal Gold Forex - Bureau de change (Symfony)
+
+Application web (Symfony) pour un bureau de change : consultation des devises, conversion, reservations, contact, et espace admin (cours, ecran public, factures PDF, messages, reservations).
+
+- Langue : francais
+- Fuseau horaire metier : Europe/Paris
+- Reservations ouvertes lundi -> samedi, 09:30–19:00 (dimanche ferme)
+
+## Sommaire
+
+- Description du projet
+- Fonctionnalites (par profils)
+- Technologies utilisees
+- Prerequis
+- Installation sur Linux (Ubuntu/Debian)
+- Base de donnees
+- Lancer le projet
+- Comptes de test
+- Structure des dossiers et fichiers
+- Fonctionnalites a venir
+- Points a ameliorer
+- Contact
+
+## Description du projet
+
+Système simple et efficace pour un bureau de change :
+- Liste des devises et valeurs affichees.
+- Conversion euro <-> devise (on remplit un cote, l’autre est calcule).
+- Reservation en ligne pendant les horaires d’ouverture.
+- Formulaire de contact.
+- Cote admin : reglage des cours, ecran public plein ecran, factures PDF, messages, reservations.
+
+## Fonctionnalites (par profils)
+
+### Visiteur
+- Accueil avec liste des devises et valeurs.
+- Convertisseur par devise (/convertisseur/{code}) : on saisit un montant d’un cote, l’autre est calcule.
+
+### Utilisateur connecte
+- Reservations de devises (/reservation) pendant les horaires autorises (heure de Paris).
+- Recapitulatif avec temps restant.
+- Envoi de messages via le formulaire de contact.
+
+### Administrateur
+- Tableau de bord (/admin).
+- Reservations : vue d’ensemble + confirmation de retrait.
+- Messages : liste des messages de contact.
+- Cours : regler les valeurs affichees par devise (saisie directe ou regle simple).
+- Ecran public : plein ecran defilant (sens d’affichage au choix : EUR -> Devise ou Devise -> EUR).
+- Factures PDF : creation d’une facture client + export PDF.
+
+## Technologies utilisees
+
+- Symfony 6 (PHP 8.x)
+- Twig, HTML5, CSS, JavaScript
+- MySQL (Doctrine ORM)
+- Dompdf (generation de PDF)
+
+## Prerequis
+
+- PHP 8.1 ou superieur
+- Composer
+- MySQL/MariaDB
+- Extensions PHP : pdo_mysql, mbstring, intl, xml, curl, gd, zip
+
+## Installation sur Linux (Ubuntu/Debian)
+
+1) Paquets systeme
+
+```bash
+sudo apt update
+sudo apt install -y \
+  php php-cli php-fpm php-mysql php-xml php-mbstring php-intl php-curl php-gd php-zip \
+  mysql-server unzip git \
+  fonts-dejavu-core
+
+2) Installer Composer
+
+php -r "copy('https://getcomposer.org/installer','composer-setup.php');"
+php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+php -r "unlink('composer-setup.php');"
+composer --version
+
+3) Récupérer le projet
+
+git clone <https://github.com/Tawfik14/Royal-Gold-Forex> royal-gold-forex
+cd royal-gold-forex
+composer install
+
+4) Configurer l'environnement
+
+cp .env .env.local
+
+Editer .env.local
+APP_ENV=dev
+APP_DEBUG=1
+APP_SECRET=ChangezMoi
+DATABASE_URL="mysql://user:motdepasse@127.0.0.1:3306/rgf?serverVersion=8.0"
+
+5) Droit décriture 
+
+mkdir -p var/cache var/log var/data
+sudo chown -R $USER:$USER var
+
+## Base de données
+
+créer la base et appliquer les migrations :
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
 
 
-Royal Gold Forex — Site de bureau de change (Symfony)
-Appli web (Symfony) pour un bureau de change : consultation des devises, convertisseur rapide, réservations en ligne, contact, et un espace admin (cours, écran d’affichage, factures PDF, messages, réservations).
-Langue : français
-Fuseau horaire métier : Europe/Paris
-Réservations ouvertes lundi → samedi, 09:30–19:00 (dimanche fermé)
+## Lancer le projet
+
+Avec la CLI Symfony :
+symfony server:start
+
+Avec PHP integre :
+php -S 127.0.0.1:8000 -t public
+
+Ouvrir : http://127.0.0.1:8000
+
+
+## Comptes de test
+
+Inscription : /inscription
+En utilisant l’email 
+
+
+## Structure des dossiers et fichiers
+
+ ### Config
+
+ config/services.yaml : autowire/autoconfigure, passage du chemin projet aux services.
+ config/packages/framework.yaml : reglages de base (secret, session).
+
+ ### Public / assets
+
+ public/Logo/logo.png : logo (utilise notamment dans les PDFs).
+
+ ### Controleurs (src/Controller)
+
+ ExchangeController.php : page d’accueil (grille des devises et valeurs), convertisseur par devise.
+ ReservationController.php : reservation (horaires Paris, echeance a 19:00 le jour meme), recapitulatif.
+ ContactController.php : formulaire de contact et enregistrement des messages.
+ AuthController.php : inscription (verifications basiques), connexion, deconnexion.
+ AdminController.php : tableau de bord, reservations (liste + confirmation), messages, reglage des cours, ecran public, factures PDF.
+ LegalController.php : pages legales (CGU, CGV, confidentialite, cookies, mentions).
+
+ ### Entites (src/Entity)
+
+ User.php : utilisateur (prenom, nom, email, date de naissance, mot de passe hache, role).
+ Reservation.php : reservation (utilisateur, operation, code, statut, creation, echeance).
+ ReservationItem.php : ligne de reservation (devise, montants figes le jour de la demande).
+ Invoice.php : facture (client, adresse, mode de paiement, code facture unique, date).
+ InvoiceItem.php : ligne de facture (devise, montants et valeurs figes pour la facture).
+ ContactMessage.php : messages envoyes via le formulaire (nom, email, message, date).
+ DisplayConfig.php : configuration de l’ecran public (sens d’affichage et liste des devises a montrer).
+ RateOverride.php : valeur personnalisee d’un cours pour une devise donnee (remplace la valeur de depart affichee).
+ RateRule.php : regle d’affichage d’un cours (saisie directe ou ajustement simple d’une valeur de depart).
+
+ ### Depots (src/Repository)
+
+ UserRepository.php : recherche par email.
+ ReservationRepository.php, ReservationItemRepository.php : acces reservations et lignes.
+ InvoiceRepository.php, InvoiceItemRepository.php : acces factures et lignes.
+ ContactMessageRepository.php : messages.
+ DisplayConfigRepository.php : configuration ecran public.
+ RateOverrideRepository.php, RateRuleRepository.php : acces aux valeurs personnalisees et regles.
+
+ ### Services (src/Service)
+
+ RateService.php : liste des devises supportees, valeurs de depart configurables cote admin, conversions pour l’interface.
+ PdfService.php : rendu PDF des factures (Dompdf).
+ FileStorage.php / UserStore.php : utilitaires de stockage sur fichiers (journalisation simple, stockage a plat).
+
+ ### Templates Twig (principaux)
+
+  #### Public :
+
+  templates/exchange/index.html.twig : accueil avec la grille des devises.
+  templates/exchange/converter.html.twig : convertisseur dedie a une devise.
+  templates/reservation/index.html.twig : formulaire de reservation (ajout de lignes, horaires).
+  templates/reservation/recap.html.twig : recapitulatif et temps restant.
+  templates/contact/index.html.twig : contact + carte.
+  templates/auth/login.html.twig : connexion.
+  templates/auth/register.html.twig : inscription.
+
+  ### Admin :
+
+  templates/admin/dashboard.html.twig : hub d’administration.
+  templates/admin/reservations.html.twig : liste + recherche + confirmation.
+  templates/admin/messages.html.twig : messages recus.
+  templates/admin/rates.html.twig : page pour regler les cours affiches.
+  templates/admin/display.html.twig : choix des devises visibles + sens d’affichage.
+  templates/admin/screen.html.twig : ecran public plein ecran defilant.
+  templates/admin/invoice.html.twig : saisie facture (client + lignes).
+  templates/admin/invoice_pdf.html.twig : modele PDF facture.
+
+  ### Base :
+  
+  templates/base.html.twig : layout commun.
+
+## Fonctionnalites a venir
+
+Verification d’email par code :
+Envoi d’un code a 6 chiffres a l’inscription.
+Formulaire de verification avec expiration et limitation des renvois.
+Blocage de certaines actions tant que l’email n’est pas confirme.
+Points a ameliorer
+Controle d’acces admin au niveau role (ne plus dependre d’un parametre d’URL).
+Protection CSRF sur tous les formulaires.
+Validation cote serveur plus stricte (contraintes).
+Limiter les tentatives de connexion.
+Recuperer les valeurs de cours depuis une source externe.
+Journaliser les actions importantes.
+
+## Contact
+
+Projet realise dans un cadre etudiant. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
