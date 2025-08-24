@@ -1,0 +1,199 @@
+{% extends 'base.html.twig' %}
+{% block title %}Réservation{% endblock %}
+
+{% block body %}
+{% set tz = 'Europe/Paris' %}
+{% set disabled_attr = isOpen ? '' : 'disabled' %}
+{% set nowLocal = now ?? date(null, tz) %}
+{% set isSundayLocal = isSunday is defined ? isSunday : (nowLocal|date('N', tz) == '7') %}
+
+<style>
+  
+  .resv-wrap, .resv-wrap *{ font-family:'Poppins',sans-serif; color:#000; }
+  .resv-wrap{ max-width:1100px; margin:40px auto; padding:0 20px; }
+  .resv-wrap h1{ margin:0 0 12px; font-size:26px; font-weight:700; letter-spacing:.2px; }
+
+  .note{
+    border:1px solid #000; border-radius:0; padding:.8rem 1rem; background:#fff; margin:.8rem 0;
+  }
+
+  
+  .fx-form{ display:grid; gap:16px; padding:0; }
+
+  .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:720px){ .row-2{ grid-template-columns:1fr; } }
+
+  .field label{ display:block; font-weight:600; margin:0 0 6px; }
+  .field input, .field select{
+    width:100%; padding:12px 10px; border:1px solid #000; border-radius:0; background:#fff; outline:none;
+  }
+  .field input:focus, .field select:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+
+  
+  .items{ display:grid; gap:10px; }
+  .item-row{
+    display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; align-items:end;
+    padding:12px 0; border-top:1px dashed #000;
+  }
+  .item-row:first-child{ border-top:0; }
+  @media (max-width:720px){ .item-row{ grid-template-columns:1fr; } }
+
+  
+  .actions{ display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+  .btn-black{
+    appearance:none; border:1px solid #000; background:#000; color:#fff;
+    padding:12px 16px; border-radius:0; font-weight:700; cursor:pointer; line-height:1; display:inline-block;
+  }
+  .btn-black:hover{ opacity:.9; }
+  .btn-black:active{ opacity:.85; }
+  .btn-black[disabled]{ opacity:.5; cursor:not-allowed; }
+
+  
+  .w-35{ width:35%; min-width:220px; }
+  @media (max-width:720px){ .w-35{ width:100%; } }
+
+  /* Tableau "Mes réservations" */
+  .tbl{ width:100%; border-collapse:collapse; border:1px solid #000; }
+  .tbl th, .tbl td{ padding:10px; text-align:left; border-top:1px solid #000; }
+  .tbl thead th{ background:#f6f6f6; border-top:none; }
+</style>
+
+<div class="resv-wrap">
+  <h1>Réserver des devises</h1>
+
+  {% if not isOpen %}
+    <div class="note">
+      {% if isSundayLocal %}
+        Les réservations sont <strong>fermées le dimanche</strong>. Réessayez <strong>lundi</strong> à partir de <strong>{{ openLabel }}</strong> (heure de Paris).
+      {% else %}
+        Les réservations sont ouvertes du <strong>{{ openDaysLabel }}</strong> de <strong>{{ openLabel }}</strong> à <strong>{{ closeLabel }}</strong> (heure de Paris). Merci de réserver durant ce créneau.
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="note">
+      Ouvert du <strong>{{ openDaysLabel }}</strong> de <strong>{{ openLabel }}</strong> à <strong>{{ closeLabel }}</strong> (heure de Paris). Fermé le dimanche.
+    </div>
+  {% endif %}
+
+  {% for m in app.flashes('success') %}
+    <div class="note" style="background:#e8ffef;">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('error') %}
+    <div class="note" style="background:#ffecec;">{{ m }}</div>
+  {% endfor %}
+
+  <form method="post" action="{{ path('app_reservation', {mode: mode}) }}" class="fx-form">
+    <div class="row-2">
+      <div class="field">
+        <label>Prénom</label>
+        <input name="first_name" required {{ disabled_attr }}>
+      </div>
+      <div class="field">
+        <label>Nom</label>
+        <input name="last_name" required {{ disabled_attr }}>
+      </div>
+    </div>
+
+    <div class="field w-35">
+      <label>Je souhaite</label>
+      <select name="operation" {{ disabled_attr }}>
+        <option value="buy">Acheter des devises (je paie en EUR)</option>
+        <option value="sell">Vendre des devises (je reçois des EUR)</option>
+      </select>
+    </div>
+
+    <div id="items" class="items">
+      <div class="item-row">
+        <div class="field">
+          <label>Devise</label>
+          <select name="item_currency[]" {{ disabled_attr }}>
+            <option value="">Choisir…</option>
+            {% for c in currencies %}
+              <option value="{{ c.code }}">{{ c.flag }} {{ c.country }} ({{ c.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Montant EUR</label>
+          <input name="item_eur[]" type="number" step="0.01" min="0" placeholder="ex: 100.00" {{ disabled_attr }}>
+        </div>
+        <div class="field">
+          <label>Montant devise</label>
+          <input name="item_local[]" type="number" step="0.01" min="0" placeholder="ex: 120.00" {{ disabled_attr }}>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="add-row" class="btn-black" {{ disabled_attr }}>Ajouter une devise</button>
+      <button class="btn-black" type="submit" {{ disabled_attr }}>Réserver</button>
+    </div>
+  </form>
+
+  <hr style="margin:24px 0; border:none; border-top:1px solid #000;">
+
+  <h2 style="margin:0 0 10px; font-size:20px; font-weight:700;">Mes réservations</h2>
+  {% if myReservations is empty %}
+    <p style="opacity:.7;">Aucune réservation.</p>
+  {% else %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Commande</th>
+          <th>Date</th>
+          <th>Échéance</th>
+          <th>Statut</th>
+          <th>Détail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set nowLocal = now ?? date(null, tz) %}
+        {% for r in myReservations %}
+          {% set expired = (r.status == 'pending' and r.pickupDeadline < nowLocal) %}
+          <tr>
+            <td style="font-weight:600;">{{ r.orderCode }}</td>
+            <td>{{ r.createdAt|date('Y-m-d H:i', tz) }}</td>
+            <td>{{ r.pickupDeadline|date('Y-m-d H:i', tz) }}</td>
+            <td>
+              {% if r.status == 'completed' %}
+                Transaction passée
+              {% else %}
+                {% set seconds = (r.pickupDeadline|date('U', tz) - nowLocal|date('U', tz)) %}
+                {% set totalMins = (seconds / 60)|round(0, 'floor') %}
+                {% if totalMins <= 0 %}
+                  Expirée
+                {% else %}
+                  {% set hours = (totalMins // 60) %}
+                  {% set mins  = (totalMins % 60) %}
+                  {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}min restantes
+                {% endif %}
+              {% endif %}
+            </td>
+            <td>
+              <a class="btn-black" href="{{ path('app_reservation_recap', {id: r.id, mode: mode}) }}">Voir</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var addBtn = document.getElementById('add-row');
+  var items = document.getElementById('items');
+  if (addBtn && items) {
+    addBtn.addEventListener('click', function(){
+      if (addBtn.hasAttribute('disabled')) return;
+      var row = items.querySelector('.item-row');
+      var clone = row.cloneNode(true);
+      clone.querySelectorAll('input').forEach(function(i){ i.value=''; });
+      clone.querySelectorAll('select').forEach(function(s){ s.selectedIndex = 0; });
+      items.appendChild(clone);
+    });
+  }
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,186 @@
+{% extends 'base.html.twig' %}
+{% block title %}CGV — Royal Gold Forex{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+    
+    .legal-banner {
+      background:#f3f4f6;
+      padding:40px 20px 60px;
+      text-align:center;
+      font-family:'Poppins',sans-serif;
+      border-bottom:1px solid #e5e7eb;
+    }
+    .legal-banner .breadcrumb {
+      font-size:14px;
+      margin-bottom:22px;
+      color:#000;
+    }
+    .legal-banner .breadcrumb a {
+      color:#000;
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+    .legal-banner h1 {
+      font-size:36px;
+      font-weight:700;
+      margin:0;
+      color:#0b1220;
+      letter-spacing:.5px;
+    }
+
+    
+    .legal{
+      max-width:880px;
+      margin:0 auto;
+      padding:50px 20px 60px;
+      font-family:'Poppins',sans-serif;
+      color:#0b1220;
+    }
+    .legal h2{
+      font-size:18px;
+      font-weight:600;
+      margin:36px 0 10px;
+    }
+    .legal p, .legal li{
+      font-size:13px;
+      line-height:2;
+      margin:14px 0;
+      color:#0b0b0b;
+    }
+    .legal a{
+      color:#000;
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+    .legal ul{ margin:8px 0 16px 22px; }
+    .legal li{ margin:6px 0; }
+
+    
+    .legal hr{
+      border:0;
+      border-top:1px solid #000;
+      margin:50px 0 20px;
+    }
+    .legal .update{
+      font-size:12px;
+      color:#000;
+      text-align:left;
+      font-style:italic;
+      font-family:'Poppins',sans-serif;
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+  
+  <header class="legal-banner">
+    <div class="breadcrumb">
+      <a href="{{ path('app_exchange', {mode: mode|default('guest')}) }}">Accueil</a> —
+      <a href="#">Conditions générales de vente</a>
+    </div>
+    <h1>Conditions Générales de Vente</h1>
+  </header>
+
+  
+  <section class="legal">
+    <h2>1. Préambule</h2>
+    <p>
+      Les présentes Conditions Générales de Vente (ci-après les « CGV ») régissent les modalités de vente des produits et services proposés
+      par Royal Gold Silver, disponible à la fois en ligne via le site internet www.royalgoldsilver.com 
+      (ci-après le « Site ») et en magasin physique situé au 119 Boulevard Magenta, 75010 Paris, France.
+    </p>
+    <p>En passant commande, le client accepte sans réserve les présentes CGV.</p>
+
+    <h2>2. Informations sur les produits et services</h2>
+    <p>Royal Gold Forex propose :</p>
+    <ul>
+      <li>L’achat et la vente d’or et de métaux précieux.</li>
+      <li>Des bijoux et articles d’horlogerie.</li>
+      <li>Des services de bureau de change.</li>
+    </ul>
+    <p>Les descriptions, caractéristiques et prix des produits sont précisés sur le Site et en magasin.</p>
+
+    <h2>3. Commandes</h2>
+    <p>Les commandes peuvent être effectuées via :</p>
+    <ul>
+      <li>Le Site.</li>
+      <li>Le téléphone.</li>
+      <li>En magasin.</li>
+    </ul>
+    <p>
+      Toute commande implique l’acceptation des présentes CGV.
+      La validation d’une commande en ligne se fait après confirmation du paiement.
+    </p>
+
+    <h2>4. Prix et paiement</h2>
+    <ul>
+      <li>Les prix sont exprimés en euros, toutes taxes comprises (TTC).</li>
+      <li>Modes de paiement acceptés : carte bancaire et espèces (uniquement en magasin).</li>
+      <li>Les paiements en espèces sont limités conformément à la législation en vigueur.</li>
+    </ul>
+
+    <h2>5. Livraison</h2>
+    <ul>
+      <li>Modes de livraison : Livraison à domicile via un transporteur local français ou retrait en agence (Click and Collect).</li>
+      <li>Zone de livraison : Union Européenne uniquement.</li>
+      <li>Les délais de livraison sont indiqués au moment de la commande. Royal Gold Forex ne peut être tenu responsable des retards imputables au transporteur.</li>
+    </ul>
+
+    <h2>6. Droit de rétractation</h2>
+    <p>Conformément à la loi, le client dispose d’un délai de 14 jours pour exercer son droit de rétractation, sauf pour les produits suivants :</p>
+    <ul>
+      <li>Les métaux précieux (or, argent, etc.) dont le prix est soumis à des fluctuations sur les marchés financiers.</li>
+      <li>Les produits personnalisés ou confectionnés sur mesure.</li>
+    </ul>
+    <p>
+      Pour exercer ce droit, le client doit contacter le service client via le formulaire présent sur le Site ou directement en magasin.
+    </p>
+
+    <h2>7. Garanties</h2>
+    <p>
+      Royal Gold Forex applique la garantie légale de conformité et la garantie des vices cachés
+      conformément aux dispositions des articles L.217-4 à L.217-14 du Code de la consommation et 1641 à 1649 du Code civil.
+    </p>
+
+    <h2>8. Contrôle d’identité</h2>
+    <p>
+      Dans le cadre de l’achat ou de la vente d’or et de métaux précieux, Royal Gold Forex peut exiger un contrôle d’identité
+      conformément à la réglementation en vigueur. Une pièce d’identité valide pourra être demandée au client.
+    </p>
+
+    <h2>9. Réclamations et médiation</h2>
+    <p>
+      En cas de litige, le client peut adresser une réclamation à notre service client via le formulaire de contact du Site ou en écrivant à l’adresse suivante :
+    </p>
+    <p>
+      <strong>Royal Gold Forex</strong><br>
+      119 Boulevard Magenta<br>
+      75010 Paris, France
+    </p>
+    <p>Si aucun accord amiable n’est trouvé, le client peut faire appel à l’entité de médiation :</p>
+    <p>
+      <strong>CNPM – Médiation de la consommation</strong><br>
+      27 avenue de la Libération<br>
+      42400 Saint-Chamond<br>
+      <a href="https://cnpm-mediation-consommation.eu" target="_blank" rel="noopener">cnpm-mediation-consommation.eu</a>
+    </p>
+
+    <h2>10. Loi applicable et juridiction compétente</h2>
+    <p>
+      Les présentes CGV sont régies par la loi française. En cas de litige, les tribunaux du ressort de Paris seront seuls compétents.
+    </p>
+
+   
+    <hr>
+    <p class="update"><em>Mis à jour le : 24 août 2025</em></p>
+  </section>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+{% endblock %}
+

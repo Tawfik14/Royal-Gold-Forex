@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+{% block title %}Gérer — Royal Gold Forex{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap');
+    .admin-wrap{max-width:1000px;margin:32px auto 60px;padding:0 20px;font-family:'Poppins',sans-serif}
+    .admin-wrap h1{margin:0 0 8px;font-size:28px;font-weight:700;letter-spacing:.2px}
+    .admin-wrap p.lead{margin:0 0 24px;color:#6b7280}
+
+    .admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+    .admin-card{
+      display:block;background:#fff;border:1px solid #0b1220;border-radius:0;padding:16px;
+      text-decoration:none;color:#0b1220;transition:transform .08s ease, background .12s ease
+    }
+    .admin-card:hover{background:#f9fafb;transform:translateY(-1px)}
+    .admin-card strong{display:block;font-weight:600;margin-bottom:6px}
+    .admin-card span{font-size:13px;color:#6b7280}
+  </style>
+{% endblock %}
+
+{% block body %}
+  <section class="admin-wrap">
+    <h1>Gérer</h1>
+    <p class="lead">Accédez rapidement aux sections d’administration.</p>
+
+    <div class="admin-grid">
+      <a class="admin-card" href="{{ path('admin_reservations', {mode: 'admin'}) }}">
+        <strong>Réservations</strong><span>Voir / confirmer les réservations</span>
+      </a>
+      <a class="admin-card" href="{{ path('admin_messages', {mode: 'admin'}) }}">
+        <strong>Messages contact</strong><span>Consulter les messages reçus</span>
+      </a>
+      <a class="admin-card" href="{{ path('admin_rates', {mode: 'admin'}) }}">
+        <strong>Modifier les taux</strong><span>Gérer buy/sell, overrides & règles</span>
+      </a>
+      <a class="admin-card" href="{{ path('admin_invoice', {mode: 'admin'}) }}">
+        <strong>Facture</strong><span>Créer une facture client</span>
+      </a>
+      <a class="admin-card" href="{{ path('admin_display', {mode: 'admin'}) }}">
+        <strong>Affichage</strong><span>Sélection des devises pour l’écran</span>
+      </a>
+      <a class="admin-card" href="{{ path('admin_screen', {mode: 'admin'}) }}" target="_blank" rel="noopener">
+        <strong>Écran (défilement)</strong><span>Vue publique pleine page</span>
+      </a>
+    </div>
+  </section>
+{% endblock %}
+

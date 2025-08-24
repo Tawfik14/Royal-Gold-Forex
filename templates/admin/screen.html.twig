@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Écran d'affichage - Cours de change</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+      overflow: hidden;
+    }
+    .screen-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+    }
+    .header {
+      flex: 0 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0b0b0b;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .direction {
+      font-size: 16px;
+      color: #b3b3b3;
+      margin-left: 12px;
+      font-weight: 500;
+    }
+    .clock {
+      font-variant-numeric: tabular-nums;
+      color: #b3b3b3;
+      font-weight: 600;
+    }
+    .table-head {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr 0.7fr;
+      padding: 12px 24px;
+      background: #0f0f0f;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-weight: 700;
+      color: #d9d9d9;
+      letter-spacing: 0.3px;
+    }
+    .scroll-viewport {
+      position: relative;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+    .scroll-inner {
+      position: relative;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr 0.7fr;
+      align-items: center;
+      padding: 18px 24px;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+    .currency {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .flag {
+      font-size: 28px;
+      width: 36px;
+      text-align: center;
+    }
+    .code {
+      font-size: 16px;
+      color: #bdbdbd;
+      font-weight: 700;
+      margin-left: 6px;
+      letter-spacing: 0.4px;
+    }
+    .rate {
+      font-variant-numeric: tabular-nums;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .rate .unit {
+      font-size: 14px;
+      color: #a9a9a9;
+      font-weight: 600;
+    }
+    .buy {
+      color: #8bd3ff;
+    }
+    .sell {
+      color: #ffb86b;
+    }
+    .footer {
+      flex: 0 0 auto;
+      padding: 10px 24px;
+      background: #0b0b0b;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: #9a9a9a;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .muted {
+      color: #777;
+    }
+    .hint {
+      color: #777;
+      font-size: 12px;
+      margin-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="screen-wrapper" data-direction="{{ direction }}">
+    <div class="header">
+      <div>
+        <span class="title">Cours de change</span>
+        <span class="direction">
+          {% if direction == 'local_to_eur' %}
+            Affichage: Devise → EUR
+          {% else %}
+            Affichage: EUR → Devise
+          {% endif %}
+        </span>
+        <span class="hint">(Espace/Échap: pause • +/-: vitesse • F11: plein écran)</span>
+      </div>
+      <div class="clock" id="clock"></div>
+    </div>
+
+    <div class="table-head">
+      <div>Devise</div>
+      <div class="buy">Achat</div>
+      <div class="sell">Vente</div>
+    </div>
+
+    <div class="scroll-viewport" id="viewport">
+      <div class="scroll-inner" id="track">
+        {% set _rows = rows|default([]) %}
+
+        {% for row in _rows %}
+          <div class="row">
+            <div class="currency">
+              <span class="flag">{{ row.flag }}</span>
+              <span>{{ row.name }}</span>
+              <span class="code">({{ row.code }})</span>
+            </div>
+            <div class="rate buy">
+              <span>{{ row.displayBuy is not null ? row.displayBuy|number_format(6, '.', ' ') : '-' }}</span>
+              <span class="unit">{{ row.suffixCode }}</span>
+              <span class="muted">pour 1 {{ row.prefixCode }}</span>
+            </div>
+            <div class="rate sell">
+              <span>{{ row.displaySell is not null ? row.displaySell|number_format(6, '.', ' ') : '-' }}</span>
+              <span class="unit">{{ row.suffixCode }}</span>
+              <span class="muted">pour 1 {{ row.prefixCode }}</span>
+            </div>
+          </div>
+        {% endfor %}
+
+        
+        {% if _rows|length >= 12 %}
+          {% for row in _rows %}
+            <div class="row">
+              <div class="currency">
+                <span class="flag">{{ row.flag }}</span>
+                <span>{{ row.name }}</span>
+                <span class="code">({{ row.code }})</span>
+              </div>
+              <div class="rate buy">
+                <span>{{ row.displayBuy is not null ? row.displayBuy|number_format(6, '.', ' ') : '-' }}</span>
+                <span class="unit">{{ row.suffixCode }}</span>
+                <span class="muted">pour 1 {{ row.prefixCode }}</span>
+              </div>
+              <div class="rate sell">
+                <span>{{ row.displaySell is not null ? row.displaySell|number_format(6, '.', ' ') : '-' }}</span>
+                <span class="unit">{{ row.suffixCode }}</span>
+                <span class="muted">pour 1 {{ row.prefixCode }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Les taux peuvent varier — veuillez confirmer au comptoir.</span>
+      <span>Direction: {{ direction == 'local_to_eur' ? 'Devise → EUR' : 'EUR → Devise' }}</span>
+    </div>
+  </div>
+
+  <script>
+   
+    function updateClock() {
+      const el = document.getElementById('clock');
+      const now = new Date();
+      const opts = { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+      el.textContent = now.toLocaleString('fr-FR', opts).replace(',', ' —');
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    
+    const viewport = document.getElementById('viewport');
+    const track = document.getElementById('track');
+    const rowCount = {{ _rows|length }};
+    let speed = 0.6;     // px/frame
+    let paused = false;
+
+    function step() {
+      if (!paused) {
+        viewport.scrollTop += speed;
+        const half = track.scrollHeight / 2;
+        if (viewport.scrollTop >= half) {
+          viewport.scrollTop = 0;
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    // Démarrer le défilement à partir de 12 devises
+    if (rowCount >= 12) {
+      requestAnimationFrame(step);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Escape') paused = !paused;
+      if (e.key === '+' || e.key === '=') speed = Math.min(speed + 0.2, 5);
+      if (e.key === '-' || e.key === '_') speed = Math.max(speed - 0.2, 0.1);
+      if (e.key === 'F11') {
+        e.preventDefault();
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }
+    });
+    viewport.addEventListener('click', () => paused = !paused, { passive: true });
+    viewport.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+  </script>
+</body>
+</html>

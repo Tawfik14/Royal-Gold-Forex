@@ -1,0 +1,141 @@
+{% extends 'base.html.twig' %}
+{% block title %}Devises — Taux Achat & Vente{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .wrap{max-width:1280px;margin:0 auto;padding:32px 20px;text-align:left}
+    h1{margin:0 0 10px;font-weight:700;font-size:22px;text-align:left}
+    .muted{color:var(--muted);font-size:14px;text-align:left}
+
+    
+    .carousel{
+      width:min(92vw,1080px);
+      margin:18px auto 6px;
+      position:relative; border-radius:0; overflow:hidden;
+      box-shadow:0 14px 40px rgba(15,23,42,.12);
+      background:#0b1220; aspect-ratio:16/9; isolation:isolate;
+    }
+    .carousel-track{display:flex;height:100%;width:200%;transform:translateX(0);transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+    .slide{flex:0 0 100%;height:100%;position:relative}
+    .slide img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05)}
+    .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22) 0%,rgba(0,0,0,.55) 100%)}
+    .caption{position:absolute;left:22px;right:22px;bottom:18px;color:#fff;text-align:left}
+    .caption h3{margin:0;font-size:20px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+    .caption p{margin:2px 0 0;font-size:13px;opacity:.9}
+    .bars{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px}
+    .bar{width:72px;height:3px;background:rgba(255,255,255,.35);cursor:pointer;position:relative;overflow:hidden}
+    .bar .fill{position:absolute;inset:0 auto 0 0;width:0%;background:#fff}
+    .bar.active .fill{animation:barfill 5s linear forwards}
+    @keyframes barfill {from{width:0%} to{width:100%}}
+
+    
+    .grid{display:grid;gap:36px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+    a.row{border:none;border-radius:14px;background:#fff;padding:20px;display:flex;align-items:center;gap:18px;box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .15s ease; text-decoration:none; color:inherit}
+    a.row:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.08)}
+    .flag{font-size:42px;line-height:1}
+    .txt{flex:1;min-width:0}
+    .country{font-weight:700;font-size:14px}
+    .lines{margin-top:4px;color:var(--muted);font-size:13px;line-height:1.35}
+    .code{margin-left:auto;font-weight:700;font-size:14px;color:#101828}
+  </style>
+{% endblock %}
+
+{% block body %}
+  
+  <div class="carousel" id="heroCarousel" aria-label="Galerie">
+    <div class="carousel-track">
+      <div class="slide">
+        <img src="/images/carousel/slide-1.jpg" alt="Notre bureau de change — accueil">
+        <div class="overlay"></div>
+        <div class="caption">
+          <h3>Change rapide & transparent</h3>
+          <p>Sans frais cachés — service en quelques minutes.</p>
+        </div>
+      </div>
+      <div class="slide">
+        <img src="/images/carousel/slide-2.jpg" alt="Taux du jour affichés en vitrine">
+        <div class="overlay"></div>
+        <div class="caption">
+          <h3>Taux achat & vente compétitifs</h3>
+          <p>Comparez en un coup d’œil et calculez instantanément.</p>
+        </div>
+      </div>
+    </div>
+    <div class="bars">
+      <button class="bar active" type="button" aria-label="Aller à la diapo 1"><span class="fill"></span></button>
+      <button class="bar" type="button" aria-label="Aller à la diapo 2"><span class="fill"></span></button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1>Devises</h1>
+    <p class="muted">Cliquez sur une devise pour ouvrir le convertisseur sur une page dédiée.</p>
+
+    <div class="grid">
+      {% for c in currencies %}
+        {% set code = c.code %}
+        {% set r = rates[code] ?? null %}
+        {% set sell = r and r.sell ? r.sell : null %}
+        {% set invBuy = (r and r.buy and r.buy > 0) ? (1 / r.buy) : null %}
+        {% set tiny = invBuy is not null and invBuy < 0.02 %}
+
+        <a class="row"
+           href="{{ path('app_converter', { code: code }) }}"
+           aria-label="Ouvrir le convertisseur pour {{ c.country }} ({{ code }})">
+          <span class="flag">{{ c.flag }}</span>
+          <div class="txt">
+            <div class="country">{{ c.country }}</div>
+            <div class="lines">
+              {% if sell %}1 € = {{ sell|number_format(4, '.', ' ') }} {{ code }}{% else %}—{% endif %}<br>
+              {% if invBuy %}
+                {% if tiny %}
+                  100 {{ code }} = {{ (invBuy*100)|number_format(4, '.', ' ') }} €
+                {% else %}
+                  1 {{ code }} = {{ invBuy|number_format(4, '.', ' ') }} €
+                {% endif %}
+              {% else %}—{% endif %}
+            </div>
+          </div>
+          <div class="code">{{ code }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+  (function(){
+    const root=document.getElementById('heroCarousel'); if(!root) return;
+    const track=root.querySelector('.carousel-track');
+    const slides=Array.from(root.querySelectorAll('.slide'));
+    const bars=Array.from(root.querySelectorAll('.bar'));
+    let idx=0,timer; const DURATION=5000;
+
+    function setActiveBar(i){
+      bars.forEach((b,k)=>{
+        b.classList.toggle('active', k===i);
+        const fill=b.querySelector('.fill');
+        fill.style.animation='none'; void fill.offsetHeight;
+        if(k===i) fill.style.animation='';
+      });
+    }
+    function go(i){ idx=(i+slides.length)%slides.length; track.style.transform=`translateX(-${idx*100}%)`; setActiveBar(idx); }
+    function autoplay(){ stop(); timer=setInterval(()=>go(idx+1), DURATION); }
+    function stop(){ if(timer) clearInterval(timer); }
+
+    bars.forEach((b,k)=>b.addEventListener('click',()=>{ go(k); autoplay(); }));
+    root.addEventListener('mouseenter', stop); root.addEventListener('mouseleave', autoplay);
+
+    let startX=0,delta=0;
+    root.addEventListener('touchstart',(e)=>{ startX=e.touches[0].clientX; stop(); },{passive:true});
+    root.addEventListener('touchmove',(e)=>{ delta=e.touches[0].clientX-startX; },{passive:true});
+    root.addEventListener('touchend',()=>{ if(Math.abs(delta)>40){ delta<0?go(idx+1):go(idx-1); } delta=0; autoplay(); });
+
+    go(0); window.addEventListener('pageshow', autoplay, {once:true});
+  })();
+  </script>
+{% endblock %}
+
