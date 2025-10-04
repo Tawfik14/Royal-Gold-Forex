@@ -1,0 +1,219 @@
+{% extends 'base.html.twig' %}
+{% block title %}Devises — Taux Achat & Vente{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .wrap{max-width:1280px;margin:0 auto;padding:32px 20px;text-align:left}
+    h1{margin:0 0 6px;font-weight:700;font-size:22px;text-align:left}
+    .muted{color:var(--muted);font-size:14px;text-align:left}
+
+    .carousel{
+      width:min(92vw,1080px);
+      margin:18px auto 6px;
+      position:relative;
+      border-radius:0;
+      overflow:hidden;
+      box-shadow:0 14px 40px rgba(15,23,42,.12);
+      background:#0b1220;
+      aspect-ratio:16/9;
+      isolation:isolate;
+    }
+    .carousel-track{
+      display:flex;height:100%;
+      transform:translateX(0);
+      transition:transform .6s cubic-bezier(.22,.61,.36,1);
+      will-change: transform;
+    }
+    .slide{
+      min-width:100%;height:100%;
+      position:relative;display:flex;align-items:center;justify-content:center;
+      background:#000;overflow:hidden;
+    }
+    .slide img{width:100%;height:100%;object-fit:cover;display:block;}
+    .slide img.hero-shift{ object-position:center 84%; }
+
+    .overlay{ position:absolute;inset:0;
+      background:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.45) 55%,rgba(0,0,0,.72) 100%); pointer-events:none; }
+
+    .caption-panel{
+      position:absolute;left:0;right:0;bottom:0;padding:34px 28px 42px;background:rgba(0,0,0,.62);
+      border-top:1px solid rgba(255,255,255,.08);color:#fff;backdrop-filter: blur(5px);
+      min-height:clamp(140px, 28%, 260px);
+    }
+    .caption-title{margin:0 0 10px;font-size:28px;font-weight:800;letter-spacing:.2px;line-height:1.22}
+    .caption-sub{margin:0;font-size:16px;line-height:1.7;opacity:.95}
+    .caption-sub + .caption-sub{margin-top:8px}
+
+    .grid{display:grid;gap:36px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+    a.row{border:none;border-radius:14px;background:#fff;padding:20px;display:flex;align-items:center;gap:18px;
+      box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .15s ease;text-decoration:none;color:inherit}
+    a.row:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.08)}
+    .flag{font-size:42px;line-height:1}
+    .txt{flex:1;min-width:0}
+    .country{font-weight:700;font-size:14px}
+    .lines{margin-top:4px;color:var(--muted);font-size:13px;line-height:1.35}
+    .code{margin-left:auto;font-weight:700;font-size:14px;color:#101828}
+
+    @media (max-width:560px){ .slide img.hero-shift{ object-position:center 80%; } }
+  </style>
+{% endblock %}
+
+{% block body %}
+  <div class="carousel" id="heroCarousel" aria-label="Galerie">
+    <div class="carousel-track">
+      <div class="slide">
+        <img class="hero-shift" src="{{ asset('img/GareduNord.jpg') }}" alt="Notre bureau de change — Gare du Nord">
+        <div class="overlay"></div>
+        <div class="caption-panel">
+          <h3 class="caption-title">À 2 minutes de la Gare du Nord</h3>
+          <p class="caption-sub">Taux compétitifs, service rapide et accueil professionnel.</p>
+          <p class="caption-sub">Facile d'accès depuis la gare - gagnez du temps !</p>
+        </div>
+      </div>
+
+      <div class="slide">
+        <img src="{{ asset('img/Devise.png') }}" alt="Illustration de devises étrangères">
+        <div class="overlay"></div>
+        <div class="caption-panel">
+          <h3 class="caption-title">L'excellence du change, tout simplement</h3>
+          <p class="caption-sub">Taux transparents, service rapide et sécurisé.</p>
+          <p class="caption-sub">Dollars, Livres, Dirhams, Francs CFA et plus encore.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1>Devises</h1>
+    <p class="muted">
+      Taux indicatifs, actualisés automatiquement.
+    </p>
+
+    <div class="grid">
+      {% for c in currencies %}
+        {% set code = c.code %}
+        {# On garde un fallback serveur si jamais l’API est KO #}
+        {% set r       = rates[code] ?? null %}
+        {% set sellOld = r is not null and r.sell is not null ? r.sell : null %}
+        {% set buyOld  = r is not null and r.buy  is not null ? r.buy  : null %}
+        {% set spotSrv = (spots is defined and spots[code] is defined) ? spots[code] : sellOld %}
+        {% set invSrv  = (spotSrv is not null and spotSrv > 0) ? (1 / spotSrv) : (buyOld is not null and buyOld > 0 ? (1 / buyOld) : null) %}
+        {% set tinySrv = invSrv is not null and invSrv < 0.02 %}
+
+        <a class="row"
+           href="{{ path('app_converter', { code: code }) }}"
+           aria-label="Ouvrir le convertisseur pour {{ c.country }} ({{ code }})"
+           data-code="{{ code }}">
+          <span class="flag">{{ c.flag }}</span>
+          <div class="txt">
+            <div class="country">{{ c.country }}</div>
+            <div class="lines">
+              {# Placeholders (remplacés par le JS). On affiche un fallback serveur si dispo. #}
+              <span class="v-eur-local">
+                {% if spotSrv is not null %}1 € = {{ spotSrv|number_format(6, '.', ' ') }} {{ code }}{% else %}—{% endif %}
+              </span><br>
+              <span class="v-local-eur">
+                {% if invSrv is not null %}
+                  {% if tinySrv %}100 {{ code }} = {{ (invSrv*100)|number_format(6, '.', ' ') }} €{% else %}1 {{ code }} = {{ invSrv|number_format(6, '.', ' ') }} €{% endif %}
+                {% else %}—{% endif %}
+              </span>
+            </div>
+          </div>
+          <div class="code">{{ code }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+  // --- Carousel simple
+  window.addEventListener('DOMContentLoaded', function(){
+    const root   = document.getElementById('heroCarousel');
+    if(root){
+      const track  = root.querySelector('.carousel-track');
+      const slides = root.querySelectorAll('.slide');
+      let idx = 0, timer = null;
+      const DURATION = 6000;
+      const slideWidth = () => slides[0]?.offsetWidth || root.clientWidth || 0;
+      const go = (i) => { idx = (i + slides.length) % slides.length; track.style.transform = `translateX(-${slideWidth()*idx}px)`; };
+      const start = () => { stop(); timer = setInterval(()=>go(idx+1), DURATION); };
+      const stop  = () => { if(timer){ clearInterval(timer); timer=null; } };
+      go(0); start();
+      window.addEventListener('resize', ()=> track.style.transform = `translateX(-${slideWidth()*idx}px)`);
+    }
+  });
+
+  // --- Helpers de format
+  const fmt6 = (n) => (typeof n === 'number' && isFinite(n)) ? n.toFixed(6) : '';
+  const fmt4 = (n) => (typeof n === 'number' && isFinite(n)) ? n.toFixed(4) : '';
+
+  // --- Fetch avec timeout (AbortController)
+  async function fetchWithTimeout(url, { timeout = 6500, ...opts } = {}) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const res = await fetch(url, { ...opts, signal: ctrl.signal });
+      return res;
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  // --- Injection des taux via Currency API (nouvelle URL + fallback)
+  document.addEventListener('DOMContentLoaded', async () => {
+    const ENDPOINTS = [
+      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json',
+      'https://latest.currency-api.pages.dev/v1/currencies/eur.json'
+    ];
+
+    const cards = Array.from(document.querySelectorAll('a.row[data-code]'));
+    if (!cards.length) return;
+
+    let data = null, lastErr = null;
+    for (const url of ENDPOINTS) {
+      try {
+        const res = await fetchWithTimeout(url, { cache: 'no-store', timeout: 6500 });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    if (!data) {
+      console.warn('[FX] Impossible de récupérer les taux:', lastErr);
+      return; // garder les valeurs serveur
+    }
+
+    // data = { date:'YYYY-MM-DD', eur: { usd:..., gbp:..., ... } }
+    const eurMap  = data?.eur || {};
+
+    cards.forEach(card => {
+      const code = (card.getAttribute('data-code') || '').toLowerCase();
+      if (!code) return;
+
+      const spot = eurMap[code]; // EUR -> CODE
+      const v1   = card.querySelector('.v-eur-local');
+      const v2   = card.querySelector('.v-local-eur');
+
+      if (typeof spot === 'number' && isFinite(spot) && spot > 0) {
+        const inv = 1 / spot;
+        if (v1) v1.textContent = `1 € = ${fmt6(spot)} ${code.toUpperCase()}`;
+        if (v2) {
+          if (inv < 0.02) {
+            v2.textContent = `100 ${code.toUpperCase()} = ${fmt6(inv * 100)} €`;
+          } else {
+            v2.textContent = `1 ${code.toUpperCase()} = ${fmt6(inv)} €`;
+          }
+        }
+      }
+    });
+  });
+  </script>
+{% endblock %}
+

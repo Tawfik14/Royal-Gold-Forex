@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+{% block title %}Récapitulatif Réservation{% endblock %}
+
+{% block body %}
+{% set tz = 'Europe/Paris' %}
+{% set nowLocal = now ?? date(null, tz) %}
+{% set deadlineDay = reservation.pickupDeadline|date('Y-m-d', tz) %}
+{% set todayDay = nowLocal|date('Y-m-d', tz) %}
+{% set labelJour = deadlineDay == todayDay ? "aujourd’hui" : "demain" %}
+
+<style>
+  .recap, .recap *{ font-family:'Poppins',sans-serif; color:#000; }
+  .recap{ max-width:1000px; margin:40px auto; padding:0 20px; }
+  .recap h1{ margin:0 0 12px; font-size:26px; font-weight:700; }
+
+  .box{
+    border:1px solid #000; border-radius:0; background:#fff; padding:14px; margin:12px 0;
+  }
+  .line{ margin:4px 0; }
+  .muted{ opacity:.75; }
+
+  .tbl{ width:100%; border-collapse:collapse; border:1px solid #000; margin-top:8px; }
+  .tbl th, .tbl td{ padding:10px; text-align:left; border-top:1px solid #000; }
+  .tbl thead th{ background:#f6f6f6; border-top:none; }
+  .tbl tfoot th, .tbl tfoot td{ font-weight:700; background:#f9f9f9; }
+
+  .btn-black{
+    appearance:none; border:1px solid #000; background:#000; color:#fff;
+    padding:12px 16px; border-radius:0; font-weight:700; cursor:pointer; line-height:1; display:inline-block; text-decoration:none;
+  }
+  .btn-black:hover{ opacity:.9; }
+  .btn-black:active{ opacity:.85; }
+</style>
+
+<div class="recap">
+  <h1>Récapitulatif de votre réservation</h1>
+
+  <div class="box">
+    <div class="line"><strong>Commande :</strong> {{ reservation.orderCode }}</div>
+    <div class="line"><strong>Nom :</strong> {{ reservation.firstName }} {{ reservation.lastName }}</div>
+    <div class="line"><strong>Opération :</strong> {% if reservation.operation == 'buy' %}Achat de devises{% else %}Vente de devises{% endif %}</div>
+    <div class="line"><strong>Créée le :</strong> {{ reservation.createdAt|date('d/m/Y H:i', tz) }}</div>
+    <div class="line"><strong>À retirer avant :</strong> {{ reservation.pickupDeadline|date('d/m/Y H:i', tz) }} ({{ labelJour }} avant 19h)</div>
+
+    {% set seconds = (reservation.pickupDeadline|date('U', tz) - nowLocal|date('U', tz)) %}
+    {% set totalMins = (seconds / 60)|round(0, 'floor') %}
+    {% if totalMins > 0 %}
+      {% set hours = (totalMins // 60) %}
+      {% set mins  = (totalMins % 60) %}
+      <div class="line"><strong>Temps restant :</strong> {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}min</div>
+    {% else %}
+      <div class="line"><strong>Temps restant :</strong> Échéance dépassée</div>
+    {% endif %}
+  </div>
+
+  <h3 style="margin:12px 0 6px; font-size:18px; font-weight:700;">Détail</h3>
+
+  {# ===== Total EUR uniquement ===== #}
+  {% set totalEur = 0 %}
+  {% for it in reservation.items %}
+    {% set totalEur = totalEur + (it.amountEuro is not null ? it.amountEuro : 0) %}
+  {% endfor %}
+
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Devise</th>
+        <th>Montant EUR</th>
+        <th>Montant Devise</th>
+        <th>EUR→Local Buy</th>
+        <th>EUR→Local Sell</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in reservation.items %}
+        <tr>
+          <td>{{ it.currency }}</td>
+          <td>{{ it.amountEuro is not null ? (it.amountEuro|number_format(2, '.', ' ')) : '-' }}</td>
+          <td>{{ it.amountLocal is not null ? (it.amountLocal|number_format(2, '.', ' ')) : '-' }}</td>
+          <td>{{ it.rateBuy|number_format(4, '.', ' ') }}</td>
+          <td>{{ it.rateSell|number_format(4, '.', ' ') }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Total EUR</th>
+        <td>{{ totalEur|number_format(2, '.', ' ') }}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  {# --- Cadre d'info bas (sans total) --- #}
+  <div class="box" style="background:#f9fafb;">
+    <p class="muted">
+      <strong>Attention!</strong> Pour confirmer votre réservation, vous devez <strong>obligatoirement appeler l’agence au 
+      <a href="tel:0134642798" style="color:#000; text-decoration:underline;">01 34 64 27 98</a></strong>.  
+      Sans cet appel, <strong>aucune réservation ne sera prise en compte</strong>.
+    </p>
+    <p class="muted">
+      Votre numéro de commande est <strong>{{ reservation.orderCode }}</strong>.
+    </p>
+    <p class="muted">
+      Les montants et taux ci-dessus seront appliqués à votre passage en agence.  
+      Ouvert du <strong>lundi au samedi</strong> de <strong>09:30</strong> à <strong>19:00</strong> (heure de Paris).  
+      <strong>Fermé le dimanche.</strong>
+    </p>
+    <p class="muted" style="margin-top:10px;">
+      Merci pour votre confiance et à bientôt en agence.
+    </p>
+  </div>
+
+  <div style="margin-top:12px;">
+    <a class="btn-black" href="{{ path('app_reservation', {mode: mode}) }}">Retour à l’accueil</a>
+  </div>
+</div>
+{% endblock %}
+

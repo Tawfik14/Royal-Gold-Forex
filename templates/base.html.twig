@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Royal Gold Forex{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+  {% block stylesheets %}
+  <style>
+    :root{
+      --ink:#0b1220; --muted:#6b7280; --bg:#fff;
+      --hover:#f9fafb; --shadow:0 6px 18px rgba(0,0,0,.06);
+      --brand:#4f7cff;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+    a{text-decoration:none;}
+
+    /* Header */
+    .site-header{
+      padding:22px 16px 18px;
+      text-align:center;
+      border-bottom:1px solid #e5e7eb;
+      background:#fff;
+    }
+    .site-header .logo-link{display:inline-block; line-height:0;}
+    .site-header img{
+      height:120px; 
+      width:auto;display:block;margin:0 auto 12px;
+      position:relative; left:-10px; 
+    }
+    @media (max-width:560px){
+      .site-header img{height:100px; left:-6px;}
+    }
+
+    .nav{
+      display:flex;justify-content:center;gap:24px;
+      font-weight:600;font-size:16px;
+      font-family:'Poppins',sans-serif;
+      align-items:center; flex-wrap:wrap;
+    }
+
+    /* Liens du menu : underline animé discret */
+    .nav a{
+      color:var(--ink);
+      display:inline-block;
+      padding:10px 12px;
+      border-radius:10px;
+      transition: color .15s ease;
+      position:relative;
+    }
+    .nav a:not(.btn-auth)::after{
+      content:"";
+      position:absolute;
+      left:50%; bottom:4px;
+      width:0; height:2px;
+      background:currentColor;
+      transform:translateX(-50%);
+      transition:width .18s ease;
+    }
+    .nav a:not(.btn-auth):hover::after,
+    .nav a:not(.btn-auth):focus::after{
+      width:70%;
+    }
+
+    .nav .hello{font-family:'Poppins',sans-serif;font-weight:600;color:#0b1220;}
+
+    /* Boutons Auth */
+    .nav .btn-auth{
+      border:1px solid #000; background:#000; color:#fff;
+      padding:10px 14px; border-radius:0; font-weight:600; line-height:1; display:inline-block;
+    }
+    .nav .btn-auth:hover{opacity:.9; color:#fff;}
+
+    /* FOOTER BLANC */
+    .footer-top{background:#fff; border-top:1px solid #e5e7eb;}
+    .footer-top .inner{
+      max-width:1280px;margin:0 auto;padding:28px 20px;
+      display:grid;gap:24px;grid-template-columns:1.2fr .8fr;align-items:center;
+    }
+    .footer-top h4{margin:0 0 8px;font-size:18px;font-weight:700;}
+    .footer-top .hours{display:grid;grid-template-columns:auto auto;gap:6px 16px;font-size:14px;}
+    .footer-top .hours dt{color:#6b7280;}
+    .footer-top .hours dd{margin:0;font-weight:600;color:#0b1220;}
+    .footer-top .contact{margin-top:10px;font-size:15px;}
+    .footer-top .contact a{color:#0b1220;font-weight:700;}
+    .footer-top .contact a:hover{color:var(--brand);}
+
+    .footer-top .brand{text-align:right;}
+    .footer-top .brand img{
+      height:120px; width:auto; display:inline-block;
+      filter:drop-shadow(0 6px 14px rgba(0,0,0,.08));
+      position:relative; top:-8px;
+    }
+    .footer-top .note{font-size:12px;color:#6b7280;margin-top:8px;}
+
+    /* FOOTER NOIR */
+    .footer-bottom{
+      background:linear-gradient(180deg,#0e0e0e 0%,#0b0b0b 100%);
+      color:#e5e7eb;
+      border-top:1px solid rgba(255,255,255,.06);
+      position:relative; /* conteneur pour les bandes absolues */
+      overflow:hidden;
+    }
+    .footer-bottom .inner{
+      max-width:980px;margin:0 auto;padding:44px 24px 36px;
+      display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;
+      position:relative; z-index:2; /* contenu au-dessus */
+    }
+    .footer-section-title{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#94a3b8;}
+    .links-col{display:flex;flex-direction:column;gap:12px;align-items:center;margin-top:2px;}
+    .links-col a{color:#cbd5e1;font-size:14px;}
+    .links-col a:hover{color:#fff;}
+
+    /* Paiements */
+    .payments{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;}
+    .pay-chip{
+      background:#0f172a;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;
+      width:70px; height:40px;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 6px 18px rgba(0,0,0,.22);
+      padding:0;
+    }
+    .pay-chip img{ max-height:70%; max_width:80%; display:block; }
+    .pay-chip img[alt="Visa"] { max-height:95%; position:relative; top:-2px; }
+    .pay-chip img[alt="Apple Pay"] { max-height:40%; }
+    .pay-chip img[alt="Mastercard"] { max-height:65%; }
+
+    .rights{margin-top:2px;font-size:12px;color:#a0aec0;}
+
+    @media(max-width:800px){
+      .footer-top .inner{grid-template-columns:1fr;text-align:left;}
+      .footer-top .brand{text-align:left;}
+      .footer-top .brand img{height:96px; top:-6px;}
+    }
+
+    /* ===== Groupes de colonnes de liens DANS le FOOTER (camouflées) ===== */
+    .footer-ghost-group{
+      position:absolute; top:12px; bottom:12px;
+      display:flex; gap:6px; 
+      z-index:3;                 /* au-dessus du contenu pour rester cliquable */
+      pointer-events:auto;       /* cliquable */
+    }
+    .footer-ghost-group.left{ left:8px; }
+    .footer-ghost-group.right{ right:8px; }
+
+    .footer-ghost-col{
+      width:28px; display:flex; flex-direction:column; gap:4px;
+      padding:4px 2px;
+      /* Camouflage total (invisible) */
+      background:transparent; 
+      border-color:transparent;
+    }
+    .footer-ghost-col a{
+      display:block; min-height:22px;
+      /* invisible, mais cliquable */
+      background:transparent; border:0;
+      color:transparent; text-indent:-9999px;
+      outline:none;
+    }
+    .footer-ghost-col a:focus{ outline:none; }
+  </style>
+  {% endblock %}
+
+  {% block javascripts %}{% endblock %}
+</head>
+<body>
+
+  {% set auth = app.session.get('auth_user') ?? null %}
+  {% set hour = "now"|date("G") %}
+  {% set salutation = (hour >= 18 or hour < 6) ? 'Bonsoir' : 'Bonjour' %}
+  {% set modeParam = auth ? ((auth.role ?? '') == 'admin' ? 'admin' : 'user') : 'guest' %}
+
+  <header class="site-header">
+    {# Logo du haut cliquable -> page Devises (carrousel + boxes) #}
+    <a href="{{ path('app_exchange', {mode: modeParam}) }}" class="logo-link" aria-label="Accueil — Devises">
+      <img src="/Logo/logo.png" alt="Logo Royal Gold Forex">
+    </a>
+
+    <nav class="nav" aria-label="Navigation principale">
+      <a href="{{ path('app_exchange', {mode: modeParam}) }}">Devises</a>
+      <a href="{{ path('app_reservation', {mode: modeParam}) }}">Réservation</a>
+      <a href="{{ path('app_contact', {mode: modeParam}) }}">Contact</a>
+
+      {% if auth and (auth.role ?? '') == 'admin' %}
+        <a href="{{ path('admin_dashboard', {mode: 'admin'}) }}">Gérer</a>
+      {% endif %}
+
+      {% if not auth %}
+        <a class="btn-auth" href="{{ path('app_login', {mode: modeParam}) }}">Connexion</a>
+      {% else %}
+        <span class="hello">{{ salutation }}, {{ auth.firstName ?? 'Utilisateur' }}</span>
+        <a class="btn-auth" href="{{ path('app_logout') }}">Déconnexion</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    {% block body %}{% endblock %}
+  </main>
+
+  <footer class="footer-top">
+    <div class="inner">
+      <section>
+        <h4>Nous contacter & Horaires</h4>
+        <dl class="hours">
+          <dt>Lun — Ven</dt><dd>09:30 — 19:00</dd>
+          <dt>Samedi</dt><dd>10:00 — 19:00</dd>
+          <dt>Dimanche</dt><dd>Fermé</dd>
+        </dl>
+        <div class="contact">Tél : <a href="tel:+33123456789">+33 1 49 26 91 10</a></div>
+        <p class="note">Service rapide au guichet • Sans frais cachés</p>
+      </section>
+      <aside class="brand">
+        {# Logo du bas cliquable -> page Devises #}
+        <a href="{{ path('app_exchange', {mode: modeParam}) }}" class="logo-link" aria-label="Accueil — Devises">
+          <img src="/Logo/logo.png" alt="Royal Gold Forex — Logo">
+        </a>
+      </aside>
+    </div>
+  </footer>
+
+  <footer class="footer-bottom">
+    <div class="inner">
+      <p class="footer-section-title">Informations légales</p>
+      <nav class="links-col" aria-label="Liens légaux">
+        <a href="{{ path('app_cgu') }}">Conditions générales d'utilisation</a>
+        <a href="{{ path('app_cgv') }}">Conditions générales de vente</a>
+        <a href="{{ path('app_confidentialite') }}">Politique de confidentialité</a>
+        <a href="{{ path('app_cookies') }}">Politique relative aux cookies</a>
+        <a href="{{ path('app_mentions') }}">Mentions légales</a>
+        <a href="mailto:royalchangeforex@gmail.com">royalchangeforex@gmail.com</a>
+      </nav>
+
+      <p class="footer-section-title">Moyens de paiement</p>
+      <div class="payments" aria-label="Moyens de paiement acceptés">
+        <div class="pay-chip" title="Visa">
+          <img src="{{ asset('assets/img/payments/visa.svg') }}" alt="Visa">
+        </div>
+        <div class="pay-chip" title="Mastercard">
+          <img src="{{ asset('assets/img/payments/mastercard.svg') }}" alt="Mastercard">
+        </div>
+        <div class="pay-chip" title="American Express">
+          <img src="{{ asset('assets/img/payments/amex.svg') }}" alt="American Express">
+        </div>
+        <div class="pay-chip" title="Apple Pay">
+          <img src="{{ asset('assets/img/payments/applepay.svg') }}" alt="Apple Pay">
+        </div>
+      </div>
+
+      <div class="rights">
+        © {{ "now"|date("Y") }} — Tous droits réservés · Royal Gold Forex
+      </div>
+    </div>
+
+    {# ===== Groupes de colonnes camouflées dans le footer (5 par côté) ===== #}
+    <div class="footer-ghost-group left" aria-hidden="true">
+      {% for col in 1..5 %}
+        <div class="footer-ghost-col">
+          {% for i in 1..10 %}
+            <a href="{{ path('app_exchange', {mode: modeParam}) }}">change et devise</a>
+            <a href="{{ path('app_exchange', {mode: modeParam}) }}">change et devise</a>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="footer-ghost-group right" aria-hidden="true">
+      {% for col in 1..5 %}
+        <div class="footer-ghost-col">
+          {% for i in 1..10 %}
+            <a href="{{ path('app_exchange', {mode: modeParam}) }}">change et devise</a>
+            <a href="{{ path('app_exchange', {mode: modeParam}) }}">change et devise</a>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    {# ================== fin groupes de colonnes ================== #}
+
+  </footer>
+
+</body>
+</html>
+

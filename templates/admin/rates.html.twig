@@ -1,0 +1,294 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin — Taux{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .rates-wrap, .rates-wrap *{ font-family:'Poppins',sans-serif; color:#000; }
+    .rates-wrap{ max-width:1200px; margin:40px auto; padding:0 20px; }
+    .rates-wrap h1{ margin:0 0 12px; font-size:26px; font-weight:700; letter-spacing:.2px; }
+
+    .flash{ padding:.6rem 1rem; border:1px solid #000; border-radius:0; margin:.75rem 0; }
+    .flash.ok{ background:#e7ffe7; } .flash.err{ background:#ffe7e7; }
+
+    .rates-table{ width:100%; border-collapse:collapse; }
+    .rates-table thead th{
+      text-align:left; padding:10px 12px; border-bottom:2px solid #000; font-weight:600;
+    }
+    .rates-table tbody td{ padding:10px 12px; border-top:1px solid #000; vertical-align:middle; }
+    .muted{ color:#6b7280; font-style:italic; }
+
+    .field{ width:100%; padding:10px 12px; border:1px solid #000; border-radius:0; background:#fff; outline:none; }
+    .field:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+
+    .w-100{ width:100px; } .w-120{ width:120px; } .w-150{ width:150px; }
+
+    .btn-black{ appearance:none; border:1px solid #000; background:#000; color:#fff;
+      padding:12px 16px; border-radius:0; font-weight:700; cursor:pointer; line-height:1; }
+    .btn-black:hover{ opacity:.9; } .btn-black:active{ opacity:.85; }
+
+    /* Dropdown custom (pour le mode) */
+    .dropdown{ position:relative; }
+    .dropdown-toggle{
+      width:100%; text-align:left; padding:10px 36px 10px 12px;
+      border:1px solid #000; background:#fff; border-radius:0; line-height:1.2; cursor:pointer; outline:none;
+    }
+    .dropdown-toggle:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+    .dropdown .chevron{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none; width:16px; height:16px;
+    }
+    .dropdown-menu{
+      position:absolute; z-index:30; left:0; right:0; top:100%;
+      border:1px solid #000; background:#fff; border-top:none; display:none;
+    }
+    .dropdown.open .dropdown-menu{ display:block; }
+    .dropdown-item{
+      display:block; width:100%; padding:10px 12px; border:0; background:#fff; text-align:left; cursor:pointer;
+    }
+    .dropdown-item:hover, .dropdown-item[aria-selected="true"]{ background:#f6f6f6; }
+  </style>
+{% endblock %}
+
+{% block body %}
+<div class="rates-wrap">
+  <h1>Modifier les taux</h1>
+
+  {% for m in app.flashes('success') %}
+    <div class="flash ok">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('error') %}
+    <div class="flash err">{{ m }}</div>
+  {% endfor %}
+
+  <form method="post" action="{{ path('admin_rates', {mode: 'admin'}) }}">
+    <table class="rates-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Spot (EUR→Local)</th>
+          <th>Mode</th>
+          <th>EUR→Local Vente</th>
+          <th>EUR→Local Achat</th>
+          <th>Local→EUR Vente</th>
+          <th>Local→EUR Achat</th>
+          <th>% Vente (vs spot)</th>
+          <th>% Achat (vs spot)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for code in codes %}
+          {% set r  = rules[code] ?? null %}
+          {% set m  = r ? r.mode : '' %} {# vide si pas de règle #}
+          {% set mb = r and r.manualBuy  is not null ? r.manualBuy  : '' %}
+          {% set ms = r and r.manualSell is not null ? r.manualSell : '' %}
+          {% set lb = (r and r.manualBuy  is not null and r.manualBuy  > 0) ? (1 / r.manualBuy)  : '' %}
+          {% set ls = (r and r.manualSell is not null and r.manualSell > 0) ? (1 / r.manualSell) : '' %}
+          {% set spot = spots[code]|default(null) %}
+
+          <tr data-code="{{ code }}" data-current-mode="{{ m }}" data-spot="{{ spot|default('') }}">
+            <td style="font-weight:600;">{{ code }}</td>
+
+            {# spot EUR->CODE #}
+            <td title="{% if spot %}{{ (1 / spot)|number_format(6, '.', '') }} {{ code }}→EUR{% endif %}">
+              {% if spot %}
+                {{ spot|number_format(6, '.', '') }}
+              {% else %}
+                <em class="muted">- (indisponible)</em>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="dropdown w-150" data-search="0" data-disabled="0">
+                <input type="hidden" name="mode_{{ code }}" value="{{ m }}">
+                <button type="button" class="dropdown-toggle" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="dropdown-value">
+                    {% if m == 'percent' %}Pourcentage{% elseif m == 'manual' %}Manuel{% else %}Choisir un mode…{% endif %}
+                  </span>
+                  <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="dropdown-menu" role="listbox">
+                  <button type="button" role="option" class="dropdown-item" data-value="manual"  {% if m == 'manual' %}aria-selected="true"{% endif %}>Manuel</button>
+                  <button type="button" role="option" class="dropdown-item" data-value="percent" {% if m == 'percent' %}aria-selected="true"{% endif %}>Pourcentage</button>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <input name="mbuy_{{ code }}" value="{{ mb }}" placeholder="ex: 1,0500"
+                     class="field w-120" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?"/>
+            </td>
+            <td>
+              <input name="msell_{{ code }}" value="{{ ms }}" placeholder="ex: 1,1000"
+                     class="field w-120" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?"/>
+            </td>
+            <td>
+              <input name="lbuy_{{ code }}" value="{{ lb is same as('') ? '' : lb|number_format(6, '.', '') }}" placeholder="ex: 0,952381"
+                     class="field w-120" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?"/>
+            </td>
+            <td>
+              <input name="lsell_{{ code }}" value="{{ ls is same as('') ? '' : ls|number_format(6, '.', '') }}" placeholder="ex: 0,909091"
+                     class="field w-120" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?"/>
+            </td>
+
+            <td>
+              <input name="pbuy_{{ code }}" value="{{ r and r.percentBuy  is not null ? r.percentBuy  : '' }}" placeholder="ex: 2,0"
+                     class="field w-100" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?"/>
+            </td>
+            <td>
+              <input name="psell_{{ code }}" value="{{ r and r.percentSell is not null ? r.percentSell : '' }}" placeholder="ex: 2,0"
+                     class="field w-100" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?"/>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:14px;">
+      <button class="btn-black" type="submit">Enregistrer</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // --- Dropdown (met à jour l'input hidden, PAS de validation côté client)
+      function closeAll(except){
+        document.querySelectorAll('.dropdown.open').forEach(d=>{
+          if (d !== except) d.classList.remove('open');
+          d.querySelector('.dropdown-toggle')?.setAttribute('aria-expanded','false');
+        });
+      }
+      function initDropdown(dropdown){
+        if (!dropdown || dropdown.__inited) return;
+        dropdown.__inited = true;
+        const btn    = dropdown.querySelector('.dropdown-toggle');
+        const hidden = dropdown.querySelector('input[type="hidden"]');
+        const valueEl= dropdown.querySelector('.dropdown-value');
+        const items  = dropdown.querySelectorAll('.dropdown-item');
+
+        function open(){ closeAll(dropdown); dropdown.classList.add('open'); btn?.setAttribute('aria-expanded','true'); items[0]?.focus?.(); }
+        function close(){ dropdown.classList.remove('open'); btn?.setAttribute('aria-expanded','false'); }
+
+        btn?.addEventListener('click', e=>{ e.preventDefault(); dropdown.classList.contains('open') ? close() : open(); });
+
+        items.forEach(it=>{
+          it.addEventListener('click', ()=>{
+            const val = it.dataset.value || '';
+            const label = it.textContent.trim();
+            if (hidden) hidden.value = val;
+            if (valueEl) valueEl.textContent = label;
+            items.forEach(i=>i.setAttribute('aria-selected','false'));
+            it.setAttribute('aria-selected','true');
+            close();
+          });
+        });
+
+        document.addEventListener('click', e=>{ if (!dropdown.contains(e.target)) close(); });
+      }
+      document.querySelectorAll('.dropdown').forEach(initDropdown);
+
+      // --- Réciprocité EUR<->Local (accepte virgules)
+      const rows = document.querySelectorAll('tr[data-code]');
+      const toFloat = (val) => {
+        if (typeof val !== 'string') return NaN;
+        const normalized = val.replace(/\s+/g,'').replace(',', '.');
+        const num = parseFloat(normalized);
+        return isFinite(num) ? num : NaN;
+      };
+      const format6 = (num) => (typeof num === 'number' && isFinite(num)) ? num.toFixed(6) : '';
+
+      rows.forEach(row => {
+        const code = row.getAttribute('data-code');
+        const mb = row.querySelector(`input[name="mbuy_${code}"]`);
+        const ms = row.querySelector(`input[name="msell_${code}"]`);
+        const lb = row.querySelector(`input[name="lbuy_${code}"]`);
+        const ls = row.querySelector(`input[name="lsell_${code}"]`);
+
+        const syncReciprocal = (src, dst) => {
+          if (!src || !dst) return;
+          src.addEventListener('input', () => {
+            const v = toFloat(src.value);
+            if (!isNaN(v) && v > 0) dst.value = format6(1 / v);
+            else if (src.value === '') dst.value = '';
+          });
+        };
+        syncReciprocal(mb, lb);
+        syncReciprocal(lb, mb);
+        syncReciprocal(ms, ls);
+        syncReciprocal(ls, ms);
+      });
+
+      // --- Calcul des taux en mode "percent"
+      const recalcPercentRow = (row) => {
+        const code = row.getAttribute('data-code');
+        if (!code) return;
+
+        const spot = toFloat(row.getAttribute('data-spot'));
+        const modeHidden = row.querySelector('.dropdown input[type="hidden"]');
+        const mode = modeHidden ? modeHidden.value : '';
+
+        const pBuyInput  = row.querySelector(`input[name="pbuy_${code}"]`);
+        const pSellInput = row.querySelector(`input[name="psell_${code}"]`);
+
+        const mBuyInput  = row.querySelector(`input[name="mbuy_${code}"]`);
+        const mSellInput = row.querySelector(`input[name="msell_${code}"]`);
+        const lBuyInput  = row.querySelector(`input[name="lbuy_${code}"]`);
+        const lSellInput = row.querySelector(`input[name="lsell_${code}"]`);
+
+        if (mode !== 'percent' || isNaN(spot) || spot <= 0) return;
+
+        const pBuy  = toFloat(pBuyInput?.value ?? '');
+        const pSell = toFloat(pSellInput?.value ?? '');
+
+        // Achat = spot * (1 - pbuy/100)
+        if (!isNaN(pBuy)) {
+          const eurToLocalBuy = spot * (1 - (pBuy / 100));
+          if (mBuyInput) mBuyInput.value = format6(eurToLocalBuy);
+          if (lBuyInput && eurToLocalBuy > 0) lBuyInput.value = format6(1 / eurToLocalBuy);
+        }
+
+        // Vente = spot * (1 + psell/100)
+        if (!isNaN(pSell)) {
+          const eurToLocalSell = spot * (1 + (pSell / 100));
+          if (mSellInput) mSellInput.value = format6(eurToLocalSell);
+          if (lSellInput && eurToLocalSell > 0) lSellInput.value = format6(1 / eurToLocalSell);
+        }
+      };
+
+      // Brancher les écouteurs sur chaque ligne
+      document.querySelectorAll('tr[data-code]').forEach(row => {
+        const code = row.getAttribute('data-code');
+        const pBuy  = row.querySelector(`input[name="pbuy_${code}"]`);
+        const pSell = row.querySelector(`input[name="psell_${code}"]`);
+        const modeHidden = row.querySelector('.dropdown input[type="hidden"]');
+        const dropdown = row.querySelector('.dropdown');
+
+        // Recalc si le pourcentage change
+        pBuy?.addEventListener('input', () => recalcPercentRow(row));
+        pSell?.addEventListener('input', () => recalcPercentRow(row));
+
+        // Recalc quand on change de mode via le dropdown
+        dropdown?.querySelectorAll('.dropdown-item').forEach(item => {
+          item.addEventListener('click', () => {
+            setTimeout(() => recalcPercentRow(row), 0);
+          });
+        });
+
+        // Recalc au chargement si la ligne est déjà en mode percent
+        if ((modeHidden?.value || row.getAttribute('data-current-mode')) === 'percent') {
+          recalcPercentRow(row);
+        }
+      });
+
+      // Recalc global à la soumission (sécurité)
+      const form = document.querySelector('form');
+      form?.addEventListener('submit', () => {
+        document.querySelectorAll('tr[data-code]').forEach(recalcPercentRow);
+      });
+    });
+  </script>
+{% endblock %}
+

@@ -1,0 +1,396 @@
+{% extends 'base.html.twig' %}
+{% block title %}Réservation{% endblock %}
+
+{% block body %}
+{% set tz = 'Europe/Paris' %}
+{# On ne peut réserver que si c'est ouvert ET connecté #}
+{% set canReserve = isOpen and mode != 'guest' %}
+{% set disabled_attr = canReserve ? '' : 'disabled' %}
+{% set nowLocal = now ?? date(null, tz) %}
+{% set isSundayLocal = isSunday is defined ? isSunday : (nowLocal|date('N', tz) == '7') %}
+
+<style>
+  .resv-wrap, .resv-wrap *{ font-family:'Poppins',sans-serif; color:#000; }
+  .resv-wrap{ max-width:1100px; margin:40px auto; padding:0 20px; }
+  .resv-wrap h1{ margin:0 0 12px; font-size:26px; font-weight:700; letter-spacing:.2px; }
+
+  .note{ border:1px solid #000; border-radius:0; padding:.8rem 1rem; background:#fff; margin:.8rem 0; }
+
+  .fx-form{ display:grid; gap:16px; padding:0; }
+  .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:720px){ .row-2{ grid-template-columns:1fr; } }
+
+  .field label{ display:block; font-weight:600; margin:0 0 6px; }
+  .field input{
+    width:100%; padding:12px 10px; border:1px solid #000; border-radius:0; background:#fff; outline:none;
+  }
+  .field input:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+
+  /* =========================
+     DROPDOWN CUSTOM (select)
+     ========================= */
+  .dropdown{ position:relative; }
+  .dropdown-toggle{
+    width:100%; text-align:left;
+    padding:12px 42px 12px 12px;
+    border:1px solid #000; background:#fff; border-radius:0;
+    font-weight:500; line-height:1.2; cursor:pointer; outline:none;
+  }
+  .dropdown-toggle:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+  .dropdown-toggle[aria-disabled="true"]{ opacity:.5; cursor:not-allowed; background:#f7f7f7; }
+  .dropdown .chevron{
+    position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none;
+    width:18px; height:18px;
+  }
+
+  .dropdown-menu{
+    position:absolute; z-index:30; left:0; right:0; top:100%;
+    border:1px solid #000; background:#fff; border-top:none; max-height:260px; overflow:auto;
+    display:none;
+    min-width: 260px;
+  }
+  .dropdown.open .dropdown-menu{ display:block; }
+
+  .dropdown-search{ padding:8px; border-bottom:1px solid #000; }
+  .dropdown-search input{
+    width:100%; padding:10px; border:1px solid #000; border-radius:0; outline:none; background:#fff;
+  }
+  .dropdown-search input:focus{ box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+
+  .dropdown-group{ max-height:220px; overflow:auto; padding-right:2px; } /* marge pour la scrollbar */
+
+  /* ✅ anti-coupure des libellés */
+  .dropdown-item{
+    display:flex; gap:8px; align-items:flex-start;
+    width:100%;
+    padding:10px 12px; border:0; background:#fff; text-align:left; cursor:pointer;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .dropdown-item span:first-child{ flex:0 0 auto; }
+  .dropdown-item span:last-child{ flex:1 1 auto; min-width:0; }
+  .dropdown-item:hover, .dropdown-item[aria-selected="true"]{ background:#f6f6f6; }
+  .dropdown-item:focus{ outline:2px solid rgba(0,0,0,.12); outline-offset:-2px; }
+  .dropdown-empty{ padding:10px 12px; opacity:.6; }
+
+  .items{ display:grid; gap:10px; }
+  .item-row{
+    display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; align-items:end;
+    padding:12px 0; border-top:1px dashed #000;
+  }
+  .item-row:first-child{ border-top:0; }
+  @media (max-width:720px){ .item-row{ grid-template-columns:1fr; } }
+
+  .actions{ display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+  .btn-black{
+    appearance:none; border:1px solid #000; background:#000; color:#fff;
+    padding:12px 16px; border-radius:0; font-weight:700; cursor:pointer; line-height:1; display:inline-block;
+  }
+  .btn-black:hover{ opacity:.9; }
+  .btn-black:active{ opacity:.85; }
+  .btn-black[disabled]{ opacity:.5; cursor:not-allowed; }
+
+  .w-35{ width:35%; min-width:220px; }
+  @media (max-width:720px){ .w-35{ width:100%; } }
+
+  /* Tableau "Mes réservations" */
+  .tbl{ width:100%; border-collapse:collapse; border:1px solid #000; }
+  .tbl th, .tbl td{ padding:10px; text-align:left; border-top:1px solid #000; }
+  .tbl thead th{ background:#f6f6f6; border-top:none; }
+</style>
+
+<div class="resv-wrap">
+  <h1>Réserver des devises</h1>
+
+  {# --- Bandeaux d’info (mutuellement exclusifs) --- #}
+  {% if not isOpen %}
+    <div class="note">
+      {% if isSundayLocal %}
+        Les réservations sont <strong>fermées le dimanche</strong>. Réessayez <strong>lundi</strong> à partir de <strong>{{ openLabel }}</strong> (heure de Paris).
+      {% else %}
+        Les réservations sont ouvertes du <strong>{{ openDaysLabel }}</strong> de <strong>{{ openLabel }}</strong> à <strong>{{ closeLabel }}</strong> (heure de Paris). Merci de réserver durant ce créneau.
+      {% endif %}
+    </div>
+  {% elseif mode == 'guest' %}
+    <div class="note">Vous devez être connecté pour réserver.</div>
+  {% endif %}
+
+  {# Flashes #}
+  {% for m in app.flashes('success') %}
+    <div class="note" style="background:#e8ffef;">{{ m }}</div>
+  {% endfor %}
+  {% for m in app.flashes('error') %}
+    <div class="note" style="background:#ffecec;">{{ m }}</div>
+  {% endfor %}
+
+  <form method="post" action="{{ path('app_reservation', {mode: mode}) }}" class="fx-form">
+    <div class="row-2">
+      <div class="field">
+        <label>Prénom</label>
+        <input name="first_name" required {{ disabled_attr }}>
+      </div>
+      <div class="field">
+        <label>Nom</label>
+        <input name="last_name" required {{ disabled_attr }}>
+      </div>
+    </div>
+
+    {# ===== Opération (dropdown custom, sans recherche) ===== #}
+    <div class="field w-35">
+      <label>Je souhaite</label>
+      <div class="dropdown" data-search="0" data-disabled="{{ canReserve ? '0' : '1' }}">
+        <input type="hidden" name="operation" value="buy">
+        <button type="button" class="dropdown-toggle"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-disabled="{{ canReserve ? 'false' : 'true' }}">
+          <span class="dropdown-value">Acheter des devises (je paie en EUR)</span>
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dropdown-menu" role="listbox">
+          <div class="dropdown-group">
+            <button type="button" role="option" class="dropdown-item" data-value="buy" aria-selected="true">Acheter des devises (je paie en EUR)</button>
+            <button type="button" role="option" class="dropdown-item" data-value="sell">Vendre des devises (je reçois des EUR)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ===== Lignes d’articles ===== #}
+    <div id="items" class="items">
+      <div class="item-row">
+        <div class="field">
+          <label>Devise</label>
+          <div class="dropdown" data-search="1" data-disabled="{{ canReserve ? '0' : '1' }}">
+            <input type="hidden" name="item_currency[]" value="">
+            <button type="button" class="dropdown-toggle"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-disabled="{{ canReserve ? 'false' : 'true' }}">
+              <span class="dropdown-value" style="opacity:.6;">Choisir…</span>
+              <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="dropdown-menu" role="listbox">
+              <div class="dropdown-search">
+                <input type="text" placeholder="Rechercher une devise…">
+              </div>
+              <div class="dropdown-group">
+                {% for c in currencies %}
+                  <button type="button" role="option" class="dropdown-item" data-value="{{ c.code }}">
+                    <span>{{ c.flag }}</span>
+                    <span>{{ c.country }} ({{ c.code }})</span>
+                  </button>
+                {% endfor %}
+              </div>
+              <div class="dropdown-empty" style="display:none;">Aucun résultat</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Montant EUR</label>
+          <input name="item_eur[]" type="number" step="0.01" min="0" placeholder="ex: 100.00" {{ disabled_attr }}>
+        </div>
+        <div class="field">
+          <label>Montant devise</label>
+          <input name="item_local[]" type="number" step="0.01" min="0" placeholder="ex: 120.00" {{ disabled_attr }}>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="add-row" class="btn-black" {{ disabled_attr }}>Ajouter une devise</button>
+      <button class="btn-black" type="submit" {{ disabled_attr }}>Réserver</button>
+    </div>
+
+    {% if not canReserve %}
+      <p style="margin-top:6px; opacity:.75;">
+        {% if mode == 'guest' and not isOpen %}
+          {# On n'affiche plus ce texte quand hors horaires #}
+        {% elseif mode == 'guest' and isOpen %}
+          Connectez-vous pour pouvoir réserver.
+        {% else %}
+          {# Rien de plus à dire #}
+        {% endif %}
+      </p>
+    {% endif %}
+  </form>
+
+  <hr style="margin:24px 0; border:none; border-top:1px solid #000;">
+
+  <h2 style="margin:0 0 10px; font-size:20px; font-weight:700;">Mes réservations</h2>
+  {% if myReservations is empty %}
+    <p style="opacity:.7;">Aucune réservation.</p>
+  {% else %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Commande</th>
+          <th>Date</th>
+          <th>Échéance</th>
+          <th>Statut</th>
+          <th>Détail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set nowLocal = now ?? date(null, tz) %}
+        {% for r in myReservations %}
+          <tr>
+            <td style="font-weight:600;">{{ r.orderCode }}</td>
+            <td>{{ r.createdAt|date('d/m/Y H:i', tz) }}</td>
+            <td>{{ r.pickupDeadline|date('d/m/Y H:i', tz) }}</td>
+            <td>
+              {% if r.status == 'completed' %}
+                Transaction passée
+              {% else %}
+                {% set seconds = (r.pickupDeadline|date('U', tz) - nowLocal|date('U', tz)) %}
+                {% set totalMins = (seconds / 60)|round(0, 'floor') %}
+                {% if totalMins <= 0 %}
+                  Expirée
+                {% else %}
+                  {% set hours = (totalMins // 60) %}
+                  {% set mins  = (totalMins % 60) %}
+                  {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}min restantes
+                {% endif %}
+              {% endif %}
+            </td>
+            <td>
+              <a class="btn-black" href="{{ path('app_reservation_recap', {id: r.id, mode: mode}) }}">Voir</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+
+<script>
+(function(){
+  function closeAll(except){
+    document.querySelectorAll('.dropdown.open').forEach(function(d){
+      if (d !== except) d.classList.remove('open');
+      const btn = d.querySelector('.dropdown-toggle');
+      if (btn) btn.setAttribute('aria-expanded','false');
+    });
+  }
+
+  function filterMenu(dropdown){
+    const hasSearch = dropdown.dataset.search === '1';
+    if (!hasSearch) return;
+    const input = dropdown.querySelector('.dropdown-search input');
+    const items = dropdown.querySelectorAll('.dropdown-item');
+    const empty = dropdown.querySelector('.dropdown-empty');
+    if (!input) return;
+    input.addEventListener('input', function(){
+      const q = input.value.trim().toLowerCase();
+      let visible = 0;
+      items.forEach(function(it){
+        const txt = it.textContent.toLowerCase();
+        const show = txt.indexOf(q) !== -1;
+        it.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      if (empty) empty.style.display = visible ? 'none' : '';
+    });
+  }
+
+  function initDropdown(dropdown){
+    if (!dropdown || dropdown.__inited) return;
+    dropdown.__inited = true;
+
+    const disabled = dropdown.dataset.disabled === '1';
+    const btn = dropdown.querySelector('.dropdown-toggle');
+    const hidden = dropdown.querySelector('input[type="hidden"]');
+    const valueEl = dropdown.querySelector('.dropdown-value');
+    const items = dropdown.querySelectorAll('.dropdown-item');
+
+    function open(){
+      if (disabled) return;
+      closeAll(dropdown);
+      dropdown.classList.add('open');
+      btn.setAttribute('aria-expanded','true');
+      const search = dropdown.querySelector('.dropdown-search input');
+      if (search) { search.value = ''; search.dispatchEvent(new Event('input')); search.focus(); }
+      else { (items[0] && items[0].focus()); }
+    }
+    function close(){
+      dropdown.classList.remove('open');
+      btn.setAttribute('aria-expanded','false');
+    }
+
+    if (btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        if (dropdown.classList.contains('open')) close(); else open();
+      });
+      btn.addEventListener('keydown', function(e){
+        if (disabled) return;
+        if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' '){
+          e.preventDefault(); open();
+        }
+      });
+    }
+
+    items.forEach(function(it){
+      it.addEventListener('click', function(){
+        const val = it.dataset.value || '';
+        const label = it.textContent.trim();
+        if (hidden) hidden.value = val;
+        if (valueEl) { valueEl.textContent = label; valueEl.style.opacity = 1; }
+        items.forEach(i=>i.setAttribute('aria-selected','false'));
+        it.setAttribute('aria-selected','true');
+        close();
+      });
+      it.addEventListener('keydown', function(e){
+        if (e.key === 'Escape'){ e.preventDefault(); close(); btn.focus(); }
+        if (e.key === 'Enter'){ e.preventDefault(); it.click(); }
+        if (e.key === 'ArrowDown'){ e.preventDefault(); (it.nextElementSibling?.focus?.()); }
+        if (e.key === 'ArrowUp'){ e.preventDefault(); (it.previousElementSibling?.focus?.()); }
+      });
+    });
+
+    document.addEventListener('click', function(e){
+      if (!dropdown.contains(e.target)) close();
+    });
+
+    filterMenu(dropdown);
+  }
+
+  function initAll(){
+    document.querySelectorAll('.dropdown').forEach(initDropdown);
+  }
+  initAll();
+
+  var addBtn = document.getElementById('add-row');
+  var itemsWrap = document.getElementById('items');
+  if (addBtn && itemsWrap){
+    addBtn.addEventListener('click', function(){
+      if (addBtn.hasAttribute('disabled')) return;
+      var row = itemsWrap.querySelector('.item-row');
+      var clone = row.cloneNode(true);
+
+      clone.querySelectorAll('input[name="item_eur[]"]').forEach(i=>i.value='');
+      clone.querySelectorAll('input[name="item_local[]"]').forEach(i=>i.value='');
+
+      clone.querySelectorAll('.dropdown').forEach(function(dd){
+        dd.__inited = false;
+        const hidden = dd.querySelector('input[type="hidden"]');
+        const valueEl = dd.querySelector('.dropdown-value');
+        if (hidden) hidden.value = '';
+        if (valueEl){ valueEl.textContent = 'Choisir…'; valueEl.style.opacity = .6; }
+        dd.classList.remove('open');
+        const btn = dd.querySelector('.dropdown-toggle');
+        if (btn) btn.setAttribute('aria-expanded','false');
+        dd.querySelectorAll('.dropdown-item').forEach(i=>i.setAttribute('aria-selected','false'));
+        const search = dd.querySelector('.dropdown-search input');
+        if (search){ search.value=''; }
+      });
+
+      itemsWrap.appendChild(clone);
+      initAll();
+    });
+  }
+})();
+</script>
+{% endblock %}
+
