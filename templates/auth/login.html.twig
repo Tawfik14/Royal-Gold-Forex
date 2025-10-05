@@ -64,6 +64,7 @@
   {% endfor %}
 
   <form method="post" action="{{ path('app_login', {mode: mode|default('guest')}) }}" style="display:grid; gap: 12px;">
+    <input type="hidden" name="_csrf" value="{{ csrf_token('login') }}" />
     <div>
       <label class="auth-label">Email</label>
       <input class="auth-field" type="email" name="email" required autofocus />

@@ -61,6 +61,7 @@
   {% endfor %}
 
   <form method="post" action="{{ path('admin_rates', {mode: 'admin'}) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token('admin_rates') }}">
     <table class="rates-table">
       <thead>
         <tr>

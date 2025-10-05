@@ -13,11 +13,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class AuthController extends AbstractController
 {
     #[Route('/connexion', name: 'app_login', methods: ['GET','POST'])]
-    public function login(Request $request, UserRepository $users): Response
+    public function login(Request $request, UserRepository $users, \App\Service\Csrf $csrf): Response
     {
         $mode = $request->query->get('mode', 'guest');
 
         if ($request->isMethod('POST')) {
+            if (!$csrf->isValid('login', (string)$request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->redirectToRoute('app_login', ['mode' => $mode]);
+            }
             $email = trim((string) $request->request->get('email', ''));
             $password = (string) $request->request->get('password', '');
             $user = $users->findOneByEmail($email);
@@ -39,11 +43,15 @@ class AuthController extends AbstractController
     }
 
     #[Route('/inscription', name: 'app_register', methods: ['GET','POST'])]
-    public function register(Request $request, EntityManagerInterface $em, UserRepository $users): Response
+    public function register(Request $request, EntityManagerInterface $em, UserRepository $users, \App\Service\Csrf $csrf): Response
     {
         $mode = $request->query->get('mode', 'guest');
 
         if ($request->isMethod('POST')) {
+            if (!$csrf->isValid('register', (string)$request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->redirectToRoute('app_register', ['mode' => $mode]);
+            }
             $firstName = trim((string) $request->request->get('first_name', ''));
             $name      = trim((string) $request->request->get('name', ''));
             $email     = trim((string) $request->request->get('email', ''));

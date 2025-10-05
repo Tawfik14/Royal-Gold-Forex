@@ -6,6 +6,12 @@ services:
      
       $projectDir: '%kernel.project_dir%'
 
+  App\Service\Csrf:
+    arguments:
+      $appSecret: '%env(APP_SECRET)%'
+
+  App\Twig\CsrfExtension: ~
+
   
   App\:
     resource: '../src/'

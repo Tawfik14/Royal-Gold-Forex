@@ -31,7 +31,8 @@ class ReservationController extends AbstractController
         EntityManagerInterface $em,
         UserRepository $users,
         ReservationRepository $reservations,
-        RateService $rateService
+        RateService $rateService,
+        \App\Service\Csrf $csrf
     ): Response
     {
         $mode = $request->query->get('mode', 'guest');
@@ -41,6 +42,10 @@ class ReservationController extends AbstractController
         $nowParis = new \DateTimeImmutable('now', $tzParis);
 
         if ($request->isMethod('POST')) {
+            if (!$csrf->isValid('reservation', (string)$request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->redirectToRoute('app_reservation', ['mode' => $mode]);
+            }
             
             if (!self::isOpenAt($nowParis)) {
                 $isSunday = $nowParis->format('N') === '7';

@@ -124,6 +124,7 @@
   {% endfor %}
 
   <form method="post" action="{{ path('app_reservation', {mode: mode}) }}" class="fx-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token('reservation') }}">
     <div class="row-2">
       <div class="field">
         <label>Prénom</label>

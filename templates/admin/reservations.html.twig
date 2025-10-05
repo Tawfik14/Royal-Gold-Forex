@@ -162,6 +162,7 @@
             <td>
               {% if r.status != 'completed' %}
                 <form method="post" action="{{ path('admin_reservation_confirm', {id: r.id, mode: 'admin'}) }}">
+                  <input type="hidden" name="_csrf" value="{{ csrf_token('admin_reservation_confirm') }}">
                   <button class="btn-black" type="submit">Confirmer retrait</button>
                 </form>
               {% else %}

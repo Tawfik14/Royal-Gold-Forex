@@ -76,6 +76,7 @@
   {% endfor %}
 
   <form method="post" action="{{ path('app_register', {mode: mode|default('guest')}) }}" style="display:grid; gap: 12px;">
+    <input type="hidden" name="_csrf" value="{{ csrf_token('register') }}" />
     <div class="auth-grid-2">
       <div>
         <label class="auth-label">Prénom</label>

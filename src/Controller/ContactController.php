@@ -13,11 +13,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class ContactController extends AbstractController
 {
     #[Route('/contact', name: 'app_contact', methods: ['GET','POST'])]
-    public function index(Request $request, EntityManagerInterface $em, UserRepository $users): Response
+    public function index(Request $request, EntityManagerInterface $em, UserRepository $users, \App\Service\Csrf $csrf): Response
     {
         $mode = $request->query->get('mode', 'guest');
 
         if ($request->isMethod('POST')) {
+            if (!$csrf->isValid('contact', (string)$request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->redirectToRoute('app_contact', ['mode' => $mode]);
+            }
             if ($mode === 'guest') {
                 $this->addFlash('error', 'Connectez-vous pour envoyer un message.');
                 return $this->redirectToRoute('app_contact', ['mode' => $mode]);

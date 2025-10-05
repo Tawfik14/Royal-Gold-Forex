@@ -26,28 +26,32 @@ class AdminController extends AbstractController
     #[Route('/admin/reservations', name: 'admin_reservations')]
     public function reservations(Request $request, ReservationRepository $repo): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
         }
 
         $rows = $repo->createQueryBuilder('r')->orderBy('r.createdAt', 'DESC')->getQuery()->getResult();
 
         return $this->render('admin/reservations.html.twig', [
-            'mode' => $mode,
+            'mode' => 'admin',
             'rows' => $rows,
             'now'  => new \DateTimeImmutable(),
         ]);
     }
 
     #[Route('/admin/reservations/{id}/confirm', name: 'admin_reservation_confirm', methods: ['POST'])]
-    public function confirm(int $id, ReservationRepository $repo, EntityManagerInterface $em, Request $request): Response
+    public function confirm(int $id, ReservationRepository $repo, EntityManagerInterface $em, Request $request, \App\Service\Csrf $csrf): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
+        }
+        if (!$csrf->isValid('admin_reservation_confirm', (string)$request->request->get('_csrf'))) {
+            $this->addFlash('error', 'Requête invalide (CSRF).');
+            return $this->redirectToRoute('admin_reservations', ['mode' => 'admin']);
         }
         $r = $repo->find($id);
         if (!$r) {
@@ -63,15 +67,15 @@ class AdminController extends AbstractController
     #[Route('/admin/messages', name: 'admin_messages')]
     public function messages(Request $request, ContactMessageRepository $repo): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
         }
         $rows = $repo->createQueryBuilder('m')->orderBy('m.createdAt', 'DESC')->getQuery()->getResult();
 
         return $this->render('admin/messages.html.twig', [
-            'mode' => $mode,
+            'mode' => 'admin',
             'rows' => $rows,
         ]);
     }
@@ -82,13 +86,14 @@ class AdminController extends AbstractController
         RateService $rateService,
         RateRuleRepository $ruleRepo,
         EntityManagerInterface $em,
-        CurrencyApi $api
+        CurrencyApi $api,
+        \App\Service\Csrf $csrf
     ): Response
     {
-        $adminMode = $request->query->get('mode', 'guest');
-        if ($adminMode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $adminMode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
         }
 
         // Liste des devises supportées
@@ -104,6 +109,15 @@ class AdminController extends AbstractController
         $spots = $api->getEurSpots(300); // ['USD'=>1.08, 'GBP'=>0.84, ...]
 
         if ($request->isMethod('POST')) {
+            if (!$csrf->isValid('admin_rates', (string)$request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->render('admin/rates.html.twig', [
+                    'mode'  => 'admin',
+                    'codes' => $codes,
+                    'rules' => $rules,
+                    'spots' => $api->getEurSpots(300),
+                ]);
+            }
             $payload  = $request->request->all();
             $errors   = [];
             $prepared = []; // lignes prêtes à être persistées (touchées + valides)
@@ -225,13 +239,17 @@ class AdminController extends AbstractController
         InvoiceRepository $repo
     ): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
         }
 
         if ($request->isMethod('POST')) {
+            if (!\is_string($request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->redirectToRoute('admin_invoice', ['mode' => 'admin']);
+            }
             // Normalisation nom/prénom
             $firstRaw = (string)$request->request->get('first_name', '');
             $lastRaw  = (string)$request->request->get('last_name', '');
@@ -357,15 +375,19 @@ class AdminController extends AbstractController
         RateService $rateService
     ): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
         }
 
         $config = $repo->findOneBy([]) ?? new DisplayConfig();
 
         if ($request->isMethod('POST')) {
+            if (!\is_string($request->request->get('_csrf'))) {
+                $this->addFlash('error', 'Requête invalide (CSRF).');
+                return $this->redirectToRoute('admin_display', ['mode' => 'admin']);
+            }
             $direction = (string) $request->request->get('direction', 'eur_to_local');
             $codes = (array) $request->request->all('codes');
 
@@ -390,10 +412,10 @@ class AdminController extends AbstractController
     #[Route('/admin', name: 'admin_dashboard')]
     public function dashboard(Request $request): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             $this->addFlash('error', 'Accès réservé à l’administrateur.');
-            return $this->redirectToRoute('app_exchange', ['mode' => $mode]);
+            return $this->redirectToRoute('app_exchange', ['mode' => 'guest']);
         }
 
         return $this->render('admin/dashboard.html.twig', [
@@ -408,8 +430,8 @@ class AdminController extends AbstractController
         RateService $rateService
     ): Response
     {
-        $mode = $request->query->get('mode', 'guest');
-        if ($mode !== 'admin') {
+        $auth = $request->getSession()->get('auth_user');
+        if (!$auth || ($auth['role'] ?? null) !== 'admin') {
             return new Response('Forbidden', 403);
         }
 

@@ -85,6 +85,7 @@
   </section>
 
   <form id="invoice-form" method="post" action="{{ path('admin_invoice', {mode: 'admin'}) }}" class="block" style="gap:18px;">
+    <input type="hidden" name="_csrf" value="{{ csrf_token('admin_invoice') }}" />
     <h3>Lignes devises</h3>
 
     <div id="items" style="display:grid; gap:0;">

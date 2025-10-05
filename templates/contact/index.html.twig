@@ -50,6 +50,7 @@
         <h2 id="form" style="margin:0 0 20px 0; font-family:'Poppins', sans-serif;">Nous écrire</h2>
 
         <form method="post" action="{{ path('app_contact', {mode: mode}) }}" style="display:grid; gap: 24px;">
+            <input type="hidden" name="_csrf" value="{{ csrf_token('contact') }}" />
             <div style="display:flex; flex-direction:column; gap:8px;">
                 <label style="font-weight:600;">Nom</label>
                 <input name="name" required {% if mode == 'guest' %}disabled{% endif %}
