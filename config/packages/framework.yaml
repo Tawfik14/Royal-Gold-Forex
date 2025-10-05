@@ -1,8 +1,10 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    
-    session: true
+    session:
+        cookie_secure: auto   # "auto" => true si HTTPS
+        cookie_httponly: true
+        cookie_samesite: lax
 
     
 
